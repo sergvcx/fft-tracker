@@ -4,6 +4,7 @@
 //#include "ipps.h"
 //#include "ippi.h"
 #include "nmpp.h"
+#include "nmblas.h"
 #include "math.h"
 #include "dtp/dtp.h"
 #include "dtp/file.h"
@@ -91,8 +92,35 @@ void* nmppsCopy_32f_(void* src, void* dst, unsigned size) {
 extern "C" void halSleep( int) {
 	
 }*/
+
+
+static void* memCopyPop(const void *src, void *dst, unsigned int size32) {
+	if (size32 & 1)
+		memcpy(dst, src, size32 * sizeof(int));
+	else
+		nmppsCopy_32f((nm32f*)src, (nm32f*)dst, size32);
+	return 0;
+}
+static void* memCopyPush(const void *src, void *dst, unsigned int size32) {
+	//memcpy(dst, src, size32 * sizeof(int));
+	if (((int)src & 1 )||( (int)dst & 1 )||( size32 & 1))
+		printf("error\n");
+	nmppsCopy_32f((nm32f*)src, (nm32f*)dst, size32);
+	return 0;
+}
+
+extern "C" void DisableInterrupts_IMR_Low(int);
+
+#define DISABLE_SYS_TIMER()  DisableInterrupts_IMR_Low(1 << 10); *((int*)(0x40000800)) = 0;
+//? *((int*)(0x40000802)) = 1;
+
+
 int main()
 {
+
+	DISABLE_SYS_TIMER()
+	
+
 	int file_desc = dtpOpenFile(FILE, "wb");
 
 	ring_x86_to_nm0.init(X86_TO_NM0_BUFFER_SIZE);	ring_x86_to_nm0.data = x86_to_nm0_buffer; ring_x86_to_nm0.bufferId=0xBEEF0000;
@@ -145,8 +173,15 @@ int main()
 
 	//--------------pc-nm0----------------
 	//int rbIn  = dtpOpenRingbufferDefault(&ring_x86_to_nm1);
-	int rbIn  = dtpOpenRingbufferDefault(&ring_nm1_to_nm0);
-	int rbOut = dtpOpenRingbufferDefault(&ring_nm0_to_x86);
+	//int rbIn  = dtpOpenRingbufferDefault(&ring_nm1_to_nm0);
+	//int rbOut = dtpOpenRingbufferDefault(&ring_nm0_to_x86);
+
+	//int rbIn = dtpOpenRingbufferDefault(&ring_nm1_to_nm0);
+	//int rbOut = dtpOpenRingbufferDefault(&ring_nm0_to_x86);
+
+
+	int rbIn = dtpOpenRingbuffer(&ring_nm1_to_nm0, memCopyPush, memCopyPop);
+	int rbOut = dtpOpenRingbuffer(&ring_nm0_to_x86, memCopyPush, memCopyPop);
 
 	//int data[2] = { 0, 1 };
 	//dtpSend(rb_desc_w, data, 2);
@@ -250,7 +285,7 @@ int main()
 	
 	nm32fcr* currImage_fcr   = productIFFT_fcr;
 	nm32fcr* wantedImage_fcr = ringBufferHi;
-
+	clock_t t0, t1;
 
 	while (1){
 		
@@ -259,8 +294,12 @@ int main()
 
 		//printf("head =%d tail=%d \n",ring.head, ring.tail);
 		//printf("<<< ... 1:\n");
+		
 		dtpRecv(rbIn, tmpFFT_fcr, size );
 		//printf("<<<]\n:");
+		dtpRecv(rbIn, productFFT_fcr, size);
+		t1 = clock();
+		//printf("time= %ld\n", t1 - t0);
 
 		nmppsConvert_32s32fcr((nm32s*)tmpFFT_fcr,currImage_fcr, size);
 
@@ -278,9 +317,9 @@ int main()
 		//dtpRecv(dr, wantedImage_fcr, size * 2);
 		//dtpSend(dw, &caught, sizeof32(caught));
 		//printf("<<< ... 2:\n");
-		dtpRecv(rbIn, tmpFFT_fcr, size );
+		
 		//printf("<<<]\n:");
-		nmppsConvert_32s32fcr((nm32s*)tmpFFT_fcr, wantedImage_fcr, size);
+		nmppsConvert_32s32fcr((nm32s*)productFFT_fcr, wantedImage_fcr, size);
 		//printf("--- second recv ----\n");
 		
 		//printf("head =%d tail=%d \n", ring.head, ring.tail);
@@ -357,10 +396,17 @@ int main()
 		}
 		
 
+		
 	
-	
+		
 		float max = 0;
 	
+		int idx=nmblas_isamax(size*2,(const float*)productIFFT_fcr,1);
+
+		caught.y = idx>>8;
+		caught.x = (idx%256)>>1;
+
+		/*
 		for (int i = 0; i < dim -  wantedSize ; i++) {
 			for (int j = 0; j < dim -  wantedSize; j++) {
 				if (max < productIFFT_fcr[i*dim + j].re) {
@@ -370,6 +416,7 @@ int main()
 				}
 			}
 		}
+		*/
 		//printf("productFFT_fcr:\n");
 		//dump_32f("%.1f ", (float*)productFFT_fcr, 8, 16, dim * 2, 1);
 		//
@@ -379,7 +426,7 @@ int main()
 
 
 		//swap((void**)&currImage_fcr, (void**)&wantedImage_fcr);
-		
+		t0 = clock();
 		dtpSend(rbOut, &caught, sizeof32(caught));
 	}
 }

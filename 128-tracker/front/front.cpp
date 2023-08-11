@@ -145,7 +145,12 @@ int main()
 		return 0;
 	//if (!VS_Bind("..\\Samples\\Road1.avi"))
 	//if (!VS_Bind("..\\Samples\\Road2.avi"))
+#ifdef _DEBUG
 	if (!VS_Bind("..\\..\\..\\Samples\\Road2.avi"))
+#else 
+	if (!VS_Bind("..\\Samples\\Road2.avi"))
+#endif
+
 	//if (!VS_Bind("c:/SU 57 CRAZY SCARY SOUND COMPILATION_(ms video1).avi"))
 	//if (!VS_Bind("../../Samples/SU57(xvid).avi"))
 	//if (!VS_Bind("../Samples/strike(xvid).avi"))
@@ -285,35 +290,24 @@ int main()
 	NmppsFFTSpec_32fcr *specInv128;
 	nmppsFFT128InvInitAlloc_32fcr(&specInv128);
 
-
-	NmppsFFTSpec_32fcr *spec64;
-	nmppsFFT128FwdInitAlloc_32fcr(&spec64);
-
-	NmppsFFTSpec_32fcr *spec32;
-	nmppsFFT128FwdInitAlloc_32fcr(&spec32);
-
-	NmppsFFTSpec_32fcr *spec16;
-	nmppsFFT128FwdInitAlloc_32fcr(&spec16);
-
-
-	IppsFFTSpec_C_32fc *sp128;
-	ippsFFTInitAlloc_C_32fc(&sp128, 7, IPP_FFT_DIV_INV_BY_N, ippAlgHintFast);
-	
-	IppsFFTSpec_C_32fc *sp64;
-	ippsFFTInitAlloc_C_32fc(&sp64, 6, IPP_FFT_DIV_INV_BY_N, ippAlgHintFast);
-
-	IppsFFTSpec_C_32fc *sp32;
-	ippsFFTInitAlloc_C_32fc(&sp32, 5, IPP_FFT_DIV_INV_BY_N, ippAlgHintFast);
-
-	IppsFFTSpec_C_32fc *sp16;
-	ippsFFTInitAlloc_C_32fc(&sp16, 4, IPP_FFT_DIV_INV_BY_N, ippAlgHintFast);
-
-	IppsFFTSpec_C_32fc *sp8;
-	ippsFFTInitAlloc_C_32fc(&sp8, 3, IPP_FFT_DIV_INV_BY_N, ippAlgHintFast);
+	//IppsFFTSpec_C_32fc *sp128;
+	//ippsFFTInitAlloc_C_32fc(&sp128, 7, IPP_FFT_DIV_INV_BY_N, ippAlgHintFast);
+	//
+	//IppsFFTSpec_C_32fc *sp64;
+	//ippsFFTInitAlloc_C_32fc(&sp64, 6, IPP_FFT_DIV_INV_BY_N, ippAlgHintFast);
+	//
+	//IppsFFTSpec_C_32fc *sp32;
+	//ippsFFTInitAlloc_C_32fc(&sp32, 5, IPP_FFT_DIV_INV_BY_N, ippAlgHintFast);
+	//
+	//IppsFFTSpec_C_32fc *sp16;
+	//ippsFFTInitAlloc_C_32fc(&sp16, 4, IPP_FFT_DIV_INV_BY_N, ippAlgHintFast);
+	//
+	//IppsFFTSpec_C_32fc *sp8;
+	//ippsFFTInitAlloc_C_32fc(&sp8, 3, IPP_FFT_DIV_INV_BY_N, ippAlgHintFast);
 
 	int wantedSize = 10;
 	int wantedY = 10;
-	int wantedX = 10;
+	int wantedX = 60;
 	caught.x = 10;
 	caught.y = 10;
 	
@@ -407,6 +401,10 @@ int main()
 			}
 		}
 		
+		if (wantedY >dim - wantedSize) {
+			wantedY = 10;
+			wantedX = 40;
+		}
 		
 		IppiSize s = {dim,dim};
 
@@ -455,7 +453,7 @@ int main()
 		// ----------forward fft ----------------
 		
 		
-		if (1) {
+		if (0) {
 			//st = ippiFFTFwd_CToC_32fc_C1R(currImage_fc, dim * 8, currFFT_fc, dim * 8, spec, 0);
 			//st = ippiFFTFwd_CToC_32fc_C1R(wantedImage_fc, dim * 8, wantedFFT_fc, dim * 8, spec, 0);
 
@@ -555,11 +553,11 @@ int main()
 
 
 		}
-		Pos caughtNM;
+		//Pos caughtNM;
 		dtpRecv(dr, &caught, sizeof32(caught));
 		//dtpRecv(dr, &caughtNM, sizeof32(caught));
 
-		nmppsSub_32s(currImage32s, prevImage32s + caught.x- wantedX + (caught.y-wantedY) * dim, diffImage32s, dim*dim);
+		//nmppsSub_32s(currImage32s, prevImage32s + caught.x- wantedX + (caught.y-wantedY) * dim, diffImage32s, dim*dim);
 		VS_SetData(DIFF_IMG, diffImage32s);
 		int caughtOrgX, caughtOrgY, caughtOrgXX, caughtOrgYY;
 		int wantedOrgX, wantedOrgY, wantedOrgXX, wantedOrgYY;

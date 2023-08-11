@@ -38,10 +38,15 @@ __attribute__((section(".data.imu3"))) int x86_to_nm1_buffer[FULL_BANK];
 // opy push 
 
 static void* memCopyPop(const void *src, void *dst, unsigned int size32) {
-	 memcpy(dst, src, size32 * sizeof(int));
 	//if ((int)src & 1 || (int)dst & 1 || size32 & 1)
 	//	printf("error\n");
-	//nmppsCopy_32s((nm32s*)src,(nm32s*) dst, size32);
+	//printf("%08x %08x %8d\n", src, dst, size32);
+	if (size32&1)
+		memcpy(dst, src, size32 * sizeof(int));
+	else 
+		nmppsCopy_32s((nm32s*)src,(nm32s*) dst, size32);
+		//nmppsMulC_32s(src, 1, dst, size32);
+	//for(int i=0; )
 	//printf("dma start \n");
 	//halDmaStart(src, dst, size32);
 	//printf("dma end \n");
@@ -99,23 +104,26 @@ int main(){
 	
 	// -------------------------------------------------------------
 	int rbIn=dtpOpenRingbuffer(ring_x86_to_nm1, memCopyPush, memCopyPop);
-	//int rbIn=dtpOpenRingbuffer(ring_addr[1], nmppsCopy_32s, nmppsCopy_32s);
+	
+	//int rbIn=dtpOpenRingbuffer(ring_x86_to_nm1, nmppsCopy_32s, nmppsCopy_32s);
 
 	//int rbIn  = dtpOpenRingbufferDefault(ring_addr[1]);
-	int rbOut = dtpOpenRingbufferDefault(ring_nm1_to_nm0);
+	int rbOut = dtpOpenRingbuffer(ring_nm1_to_nm0, memCopyPush, memCopyPop);
+
+	//int rbOut = dtpOpenRingbufferDefault(ring_nm1_to_nm0);
 
 
 	while (1) {
-		printf("<<< 1:\n");
+		//printf("<<< 1:\n");
 		dtpRecv(rbIn, ringBufferLo, SIZE/4);
 		nmppsConvert_8s32s((nm8s*)ringBufferLo, (nm32s*)ringBufferHi, SIZE);
 		
-		printf(">>> 2:\n");
+		//printf(">>> 2:\n");
 		dtpSend(rbOut, ringBufferHi, SIZE );
-		printf("<<< 3:\n");
+		//printf("<<< 3:\n");
 		dtpRecv(rbIn, ringBufferLo, SIZE /4);
 		nmppsConvert_8s32s((nm8s*)ringBufferLo, (nm32s*)ringBufferHi, SIZE);
-		printf(">>>> 4:\n");
+		//printf(">>>> 4:\n");
 		dtpSend(rbOut, ringBufferHi, SIZE );
 	}
 
