@@ -13,8 +13,8 @@ CXXFLAGS =  -O2 -Wall -mnmc4-float -g -std=c99 -fpermissive
 CXXFLAGSD=  -O0 -Wall -mnmc4-float -g -std=c99 -fpermissive
 LIBS     =  -lnm6407int -lnmpp-nm6407f -lm  -ldtp-nm -Wl,--whole-archive -lnm6407_io_nmc -lmc12101load_nm -Wl,--no-whole-archive
 LIBSD    =  -lnm6407int -lnmpp-nm6407f -lm  -ldtp-nm -Wl,--whole-archive -lnm6407_io_nmc -lmc12101load_nm -lmc12101_stub_nmc4_float -Wl,--no-whole-archive 
-LDFLAGS  = -Wl,-Map=test.map  -Wl,-Tmc12101-nmpu0.lds
-LDFLAGSD = -Wl,-Map=testd.map -Wl,-Tmc12101-nmpu0.lds 
+LDFLAGS  = -Wl,-Map=test0.map  -Wl,-Tmc12101-nmpu0.lds
+LDFLAGSD = -Wl,-Map=test0d.map -Wl,-Tmc12101-nmpu0.lds 
 INC_DIRS = -I"$(MC12101)/include" -I../../../include -I.. -I$(DTP)/include -I$(NMPP)/include -I$(HAL)/include
 LIB_DIRS = -L"$(MC12101)/lib"  -L$(DTP)/lib -L$(NMPP)/lib
 SOURCES  = ../../back/main0.cpp
@@ -26,12 +26,12 @@ all: $(TARGET) $(TARGETD)
 $(TARGET): $(SOURCES) Makefile mc12101-nmpu0.lds 
 	@echo ------ build release --------------
 	$(CC)  -o$(TARGET) $(CXXFLAGS) $(LDFLAGS)  $(INC_DIRS) $(LIB_DIRS)  $(SOURCES) $(LIBS) $(ERRECHO)
-	nmc-objdump -D $(TARGET) > dasm.txt
+	nmc-objdump -D $(TARGET) > dasm0.txt
 
 $(TARGETD): $(SOURCES) Makefile mc12101-nmpu0.lds
 	@echo ------ build debug ----------------
 	$(CC)  -o$(TARGETD) $(CXXFLAGSD) $(LDFLAGSD) $(INC_DIRS) $(LIB_DIRS) $(SOURCES) $(LIBSD) $(ERRECHO)
-	nmc-objdump -D $(TARGETD) > dasmd.txt
+	nmc-objdump -D $(TARGETD) > dasm0d.txt
 
 
 run:  $(TARGET) 

@@ -48,7 +48,7 @@ SECTIONS
   .stack : ALIGN(0x8)
   {
     *(.stack);
-  } > C1_IMU3
+  } > C1_IMU0
   
   .init : ALIGN(0x8)
   {

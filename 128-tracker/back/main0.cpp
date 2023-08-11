@@ -82,12 +82,6 @@ __attribute__((section(".data.imu0"))) nm32fcr invBuffer3[64];
 #define NM1_TO_NM0_BUFFER_SIZE SIZE	//5
 
 
-__attribute__((section(".data.shmem0"))) int x86_to_nm0_buffer[X86_TO_NM0_BUFFER_SIZE];
-__attribute__((section(".data.shmem1"))) int x86_to_nm1_buffer[X86_TO_NM1_BUFFER_SIZE];
-__attribute__((section(".data.shmem0"))) int nm0_to_x86_buffer[NM0_TO_X86_BUFFER_SIZE];
-__attribute__((section(".data.shmem0"))) int nm1_to_x86_buffer[NM1_TO_X86_BUFFER_SIZE];
-__attribute__((section(".data.shmem0"))) int nm0_to_nm1_buffer[NM0_TO_NM1_BUFFER_SIZE];
-__attribute__((section(".data.shmem0"))) int nm1_to_nm0_buffer[NM1_TO_NM0_BUFFER_SIZE];
 
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_x86_to_nm0;
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_x86_to_nm1;
@@ -95,6 +89,14 @@ __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm0_to_x
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm1_to_x86;
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm0_to_nm1;
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm1_to_nm0;
+
+//__attribute__((section(".data.shmem1"))) int x86_to_nm1_buffer[X86_TO_NM1_BUFFER_SIZE];
+__attribute__((section(".data.shmem0"))) int x86_to_nm0_buffer[X86_TO_NM0_BUFFER_SIZE];
+__attribute__((section(".data.shmem0"))) int nm0_to_x86_buffer[NM0_TO_X86_BUFFER_SIZE];
+__attribute__((section(".data.shmem0"))) int nm1_to_x86_buffer[NM1_TO_X86_BUFFER_SIZE];
+__attribute__((section(".data.shmem0"))) int nm0_to_nm1_buffer[NM0_TO_NM1_BUFFER_SIZE];
+__attribute__((section(".data.shmem0"))) int nm1_to_nm0_buffer[NM1_TO_NM0_BUFFER_SIZE];
+
 
 //HalRingBufferData<int, 128 * 128 * 4> ring;
 
@@ -112,9 +114,9 @@ int main()
 	int file_desc = dtpOpenFile(FILE, "wb");
 
 	ring_x86_to_nm0.init(X86_TO_NM0_BUFFER_SIZE);	ring_x86_to_nm0.data = x86_to_nm0_buffer; ring_x86_to_nm0.bufferId=0xBEEF0000;
-	ring_x86_to_nm1.init(X86_TO_NM1_BUFFER_SIZE);	ring_x86_to_nm1.data = x86_to_nm1_buffer; ring_x86_to_nm1.bufferId=0xBEEF0001;
+	//ring_x86_to_nm1.init(X86_TO_NM1_BUFFER_SIZE);	ring_x86_to_nm1.data = x86_to_nm1_buffer+0x80; ring_x86_to_nm1.bufferId=0xBEEF0001;
 	ring_nm0_to_x86.init(NM0_TO_X86_BUFFER_SIZE);	ring_nm0_to_x86.data = nm0_to_x86_buffer; ring_nm0_to_x86.bufferId=0xBEEF0002;
-	ring_nm1_to_x86.init(NM1_TO_X86_BUFFER_SIZE);	ring_nm1_to_x86.data = nm1_to_x86_buffer; ring_nm1_to_x86.bufferId=0xBEEF0003;
+	//ring_nm1_to_x86.init(NM1_TO_X86_BUFFER_SIZE);	ring_nm1_to_x86.data = nm1_to_x86_buffer; ring_nm1_to_x86.bufferId=0xBEEF0003;
 	ring_nm0_to_nm1.init(NM0_TO_NM1_BUFFER_SIZE);	ring_nm0_to_nm1.data = nm0_to_nm1_buffer; ring_nm0_to_nm1.bufferId=0xBEEF0004;
 	ring_nm1_to_nm0.init(NM1_TO_NM0_BUFFER_SIZE);	ring_nm1_to_nm0.data = nm1_to_nm0_buffer; ring_nm1_to_nm0.bufferId=0xBEEF0005;
 
@@ -122,16 +124,18 @@ int main()
 	//printf("host2nm1_buffer: %p, data_X86_output: %p\n", host2nm1_buffer, data_X86_output);
 	//int offset = 0x40000 + 0x40000 * ncl_getProcessorNo();
 
-	void* ring_addr[6];
+	HalRingBufferData<int, 2>* ring[6];
 	// write to file addr of pc-nm0 ring buffers
-	ring_addr[0] = &ring_x86_to_nm0;
-	ring_addr[1] = &ring_x86_to_nm1;
-	ring_addr[2] = &ring_nm0_to_x86;
-	ring_addr[3] = &ring_nm1_to_x86;
-	ring_addr[4] = &ring_nm0_to_nm1;
-	ring_addr[5] = &ring_nm1_to_nm0;
+	ring[0] = &ring_x86_to_nm0;
+	ring[1] = &ring_x86_to_nm1;
+	ring[2] = &ring_nm0_to_x86;
+	ring[3] = &ring_nm1_to_x86;
+	ring[4] = &ring_nm0_to_nm1;
+	ring[5] = &ring_nm1_to_nm0;
+	
 	for (int i = 0; i < 6; i++)
-		printf("%d: %x\n",i, ring_addr[i]);
+		printf("%d: ring:%08x data:%08x id:%08x\n", i, ring[i], ring[i]->data, ring[i]->bufferId);
+
 
 	//int ring_x86_to_nm1_ = (int)&ring_x86_to_nm1;
 	//int ring_nm1_to_nm0_a = (int)&ring_nm1_to_host;
@@ -141,7 +145,7 @@ int main()
 	//dtpSend(file_desc, &ring_input_addr, 1);
 	//dtpSend(file_desc, &ring_output_addr, 1);
 	printf("<<< ... 0\n");
-	dtpSend(file_desc, ring_addr, 6);
+	dtpSend(file_desc, ring, 6);
 	printf("<<<]\n:");
 
 	// write to file addr of nm0-nm1 ring buffers
