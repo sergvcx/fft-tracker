@@ -14,24 +14,6 @@
 #include "dumpx.h"
 #include "mc12101load_nm.h"
 
-//#include "VShell.h"
-//#include "memory.h"
-//#include "hadamard.h"
-
-//int blur(nm8u *img, int width, int height, int size, int x, int y) {
-//	int halfsize = size / 2;
-//	int sum = 0;
-//	int k = 0;
-//	for (int i = MAX(0, y - halfsize); i <= MIN(height - 1, y + halfsize); i++) {
-//		for (int j = MAX(0, x - halfsize); j <= MIN(width - 1, x + halfsize); j++) {
-//			sum += img[i*width + j];
-//			k++;
-//		}
-//	}
-//	sum /= k;
-//	return sum;
-//}
-
 void swap(void** ptr0, void** ptr1) {
 	void* tmp = *ptr1;
 	*ptr1 = *ptr0;
@@ -48,10 +30,10 @@ const int WIDTH = 128;
 const int HEIGHT= 128;
 const int ECHO= 128; 
 const int SIZE= WIDTH *HEIGHT;
+#define FULL_BANK 32*1024
 
-__attribute__((section(".data.imu1"))) 	nm32fcr ringBufferLo[SIZE];
-__attribute__((section(".data.imu2"))) 	nm32fcr ringBufferHi[SIZE];
-
+__attribute__((section(".data.imu1"))) 		int nm1_to_nm0_buffer[FULL_BANK]; 
+__attribute__((section(".data.imu2"))) 		nm32fcr ringBufferHi[SIZE];
 __attribute__ ((section (".data.imu3"))) 	nm32fcr currFFT_fcr[SIZE];
 __attribute__ ((section (".data.imu4"))) 	nm32fcr wantedFFT_fcr[SIZE];
 __attribute__ ((section (".data.imu5"))) 	nm32fcr tmpFFT_fcr[SIZE];
@@ -95,7 +77,7 @@ __attribute__((section(".data.shmem0"))) int x86_to_nm0_buffer[X86_TO_NM0_BUFFER
 __attribute__((section(".data.shmem0"))) int nm0_to_x86_buffer[NM0_TO_X86_BUFFER_SIZE];
 __attribute__((section(".data.shmem0"))) int nm1_to_x86_buffer[NM1_TO_X86_BUFFER_SIZE];
 __attribute__((section(".data.shmem0"))) int nm0_to_nm1_buffer[NM0_TO_NM1_BUFFER_SIZE];
-__attribute__((section(".data.shmem0"))) int nm1_to_nm0_buffer[NM1_TO_NM0_BUFFER_SIZE];
+//__attribute__((section(".data.imu7"))) int nm1_to_nm0_buffer[FULL_BANK];
 
 
 //HalRingBufferData<int, 128 * 128 * 4> ring;
@@ -118,7 +100,7 @@ int main()
 	ring_nm0_to_x86.init(NM0_TO_X86_BUFFER_SIZE);	ring_nm0_to_x86.data = nm0_to_x86_buffer; ring_nm0_to_x86.bufferId=0xBEEF0002;
 	//ring_nm1_to_x86.init(NM1_TO_X86_BUFFER_SIZE);	ring_nm1_to_x86.data = nm1_to_x86_buffer; ring_nm1_to_x86.bufferId=0xBEEF0003;
 	ring_nm0_to_nm1.init(NM0_TO_NM1_BUFFER_SIZE);	ring_nm0_to_nm1.data = nm0_to_nm1_buffer; ring_nm0_to_nm1.bufferId=0xBEEF0004;
-	ring_nm1_to_nm0.init(NM1_TO_NM0_BUFFER_SIZE);	ring_nm1_to_nm0.data = nm1_to_nm0_buffer; ring_nm1_to_nm0.bufferId=0xBEEF0005;
+	ring_nm1_to_nm0.init(sizeof(nm1_to_nm0_buffer));ring_nm1_to_nm0.data = (int*)nm1_to_nm0_buffer+0x40000; ring_nm1_to_nm0.bufferId=0xC1C0B00F;
 
 	//printf("input: %p, output: %p\n", &ring_x86_to_nm1, &ring_X86_output);
 	//printf("host2nm1_buffer: %p, data_X86_output: %p\n", host2nm1_buffer, data_X86_output);
@@ -134,7 +116,7 @@ int main()
 	ring[5] = &ring_nm1_to_nm0;
 	
 	for (int i = 0; i < 6; i++)
-		printf("%d: ring:%08x data:%08x id:%08x\n", i, ring[i], ring[i]->data, ring[i]->bufferId);
+		printf("%d: ring:%08x data:%08x size:%8d id:%08x\n", i, ring[i], ring[i]->data, ring[i]->size, ring[i]->bufferId);
 
 
 	//int ring_x86_to_nm1_ = (int)&ring_x86_to_nm1;
@@ -266,7 +248,7 @@ int main()
 	caught.y = 11;
 	
 	
-	nm32fcr* currImage_fcr   = ringBufferLo;
+	nm32fcr* currImage_fcr   = productIFFT_fcr;
 	nm32fcr* wantedImage_fcr = ringBufferHi;
 
 

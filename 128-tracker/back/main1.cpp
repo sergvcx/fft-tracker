@@ -72,24 +72,24 @@ int main(){
 		file_desc = dtpOpenFile(FILE, "rb");
 	} while (file_desc < 0);
 	
-	HalRingBufferData<int, 2>* ringBufferData[6];
-	dtpRecv(file_desc, ringBufferData, 6);
+	HalRingBufferData<int, 2>* ring[6];
+	dtpRecv(file_desc, ring, 6);
 	dtpClose(file_desc);
 
-	HalRingBufferData<int, 2>* ring_x86_to_nm0=ringBufferData[0];
-	HalRingBufferData<int, 2>* ring_x86_to_nm1=ringBufferData[1];
-	HalRingBufferData<int, 2>* ring_nm0_to_x86=ringBufferData[2];
-	HalRingBufferData<int, 2>* ring_nm1_to_x86=ringBufferData[3];
-	HalRingBufferData<int, 2>* ring_nm0_to_nm1=ringBufferData[4];
-	HalRingBufferData<int, 2>* ring_nm1_to_nm0=ringBufferData[5];
+	HalRingBufferData<int, 2>* ring_x86_to_nm0 = ring[0];
+	HalRingBufferData<int, 2>* ring_x86_to_nm1 = ring[1];
+	HalRingBufferData<int, 2>* ring_nm0_to_x86 = ring[2];
+	HalRingBufferData<int, 2>* ring_nm1_to_x86 = ring[3];
+	HalRingBufferData<int, 2>* ring_nm0_to_nm1 = ring[4];
+	HalRingBufferData<int, 2>* ring_nm1_to_nm0 = ring[5];
 
 	ring_x86_to_nm1->init(sizeof(x86_to_nm1_buffer));
 	ring_x86_to_nm1->data=x86_to_nm1_buffer;
-	ring_x86_to_nm1->bufferId = 0x8601B00F;
+	ring_x86_to_nm1->bufferId = 0x86C1B00F;
 
 	printf("2\n");
 	for (int i = 0; i < 6; i++)
-		printf("%d: ring:%08x data:%08x id:%08x\n", i, ringBufferData[i], ringBufferData[i]->data, ringBufferData[i]->bufferId);
+		printf("%d: ring:%08x data:%08x size:%8d id:%08x\n", i, ring[i], ring[i]->data, ring[i]->size, ring[i]->bufferId);
 
 	//return 1;
 	//halDmaInit();
