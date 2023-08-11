@@ -146,7 +146,10 @@ int main()
 	//if (!VS_Bind("..\\Samples\\Road1.avi"))
 	//if (!VS_Bind("..\\Samples\\Road2.avi"))
 #ifdef _DEBUG
-	if (!VS_Bind("..\\..\\..\\Samples\\Road2.avi"))
+	//if (!VS_Bind("..\\..\\..\\Samples\\Road2.avi"))
+	//if (!VS_Bind("..\\..\\..\\Samples\\strike(xvid).avi"))
+	if (!VS_Bind("..\\..\\..\\Samples\\strike256(xvid).avi"))
+
 #else 
 	if (!VS_Bind("..\\Samples\\Road2.avi"))
 #endif
@@ -255,7 +258,7 @@ int main()
 	VS_CreateImage("current Image", CURR_IMG8, width, height, VS_RGB8, 0);
 	#define PREV_IMG8 4
 	VS_CreateImage("previous Image", PREV_IMG8, width, height, VS_RGB8, 0);
-	VS_CreateImage("Blur", 10, width, height, VS_RGB8, 0);
+	//VS_CreateImage("Blur", 10, width, height, VS_RGB8, 0);
 	//VS_CreateImage("Blur32", 11, width, height, VS_RGB8_32, 0);
 	
 	//VS_CreateImage("Blur16", 12, width, height, VS_RGB8_16, 0);
@@ -265,22 +268,22 @@ int main()
 	
 	#define CURR_IMG_FC 213
 	#define PREV_IMG_FC 214
-	VS_CreateImage("curr input(cmplx)", CURR_IMG_FC, width, height, VS_RGB32FC, 0);
-	VS_CreateImage("prev input(cmplx)", PREV_IMG_FC, width, height, VS_RGB32FC, 0);
+	//VS_CreateImage("curr input(cmplx)", CURR_IMG_FC, width, height, VS_RGB32FC, 0);
+	//VS_CreateImage("prev input(cmplx)", PREV_IMG_FC, width, height, VS_RGB32FC, 0);
 	#define WANTED_IMG_FC 215
-	VS_CreateImage("wanted input(cmplx)", WANTED_IMG_FC, dim, dim, VS_RGB32FC, 0);
+	//VS_CreateImage("wanted input(cmplx)", WANTED_IMG_FC, dim, dim, VS_RGB32FC, 0);
 
 	#define CURR_FFT 221
 	#define WANT_FFT 222
-	VS_CreateImage("curr  FFT(cmplx)", CURR_FFT, dim, dim, VS_RGB32FC, 0);
-	VS_CreateImage("wanted FFT(cmplx)", WANT_FFT, dim, dim, VS_RGB32FC, 0);
+	//VS_CreateImage("curr  FFT(cmplx)", CURR_FFT, dim, dim, VS_RGB32FC, 0);
+	//VS_CreateImage("wanted FFT(cmplx)", WANT_FFT, dim, dim, VS_RGB32FC, 0);
 	
-	VS_CreateImage("FFT*FFT(cmplx)", 332, dim, dim, VS_RGB32FC, 0);
+	//VS_CreateImage("FFT*FFT(cmplx)", 332, dim, dim, VS_RGB32FC, 0);
 	#define  IFFT_IMG 333
-	VS_CreateImage("IFFT   (cmplx)", IFFT_IMG, dim, dim, VS_RGB32FC, 0);
+	//VS_CreateImage("IFFT   (cmplx)", IFFT_IMG, dim, dim, VS_RGB32FC, 0);
 	
 	#define  DIFF_IMG 334
-	VS_CreateImage("Diff ", DIFF_IMG, width, height, VS_RGB8_32, 0);
+	//VS_CreateImage("Diff ", DIFF_IMG, width, height, VS_RGB8_32, 0);
 
 	//VS_CreateImage("Had32", 444, width, height, VS_RGB8_32, 0);
 	
@@ -346,16 +349,16 @@ int main()
 
 	while (status=VS_Run()) {
 
-		for (int i = 0; i < size; i++) {
-			//currImage_fc[i] = { 0,0 };
-			//prevImage_fc[i] = { 0,0 };
-			wantedImage_fc[i] = { 0,0 };
-			wantedImage_fcr[i] = { 0,0 };
-			//currImage8u[i] = 0;
-			tmp[i] = 0;
-			tmp2[i] = 0;
-		}
-
+		//for (int i = 0; i < size; i++) {
+		//	//currImage_fc[i] = { 0,0 };
+		//	//prevImage_fc[i] = { 0,0 };
+		//	wantedImage_fc[i] = { 0,0 };
+		//	wantedImage_fcr[i] = { 0,0 };
+		//	//currImage8u[i] = 0;
+		//	tmp[i] = 0;
+		//	tmp2[i] = 0;
+		//}
+		memset(wantedImage8s, 0, size);
 		cropFactor = VS_GetSlider(0);
 
 		if (!(status&VS_PAUSE)) {
@@ -370,8 +373,8 @@ int main()
 			VS_SetData(1, currOriginC);
 			VS_GetGrayData(VS_SOURCE, currOrigin8u);
 			
-			nmppsConvert_8u32u(prevImage8u,(nm32u*)prevImage32s,dim*dim);
-			nmppsConvert_8u32u(currImage8u,(nm32u*)currImage32s,dim*dim);
+			//nmppsConvert_8u32u(prevImage8u,(nm32u*)prevImage32s,dim*dim);
+			//nmppsConvert_8u32u(currImage8u,(nm32u*)currImage32s,dim*dim);
 			IppiSize srcRoiSize{ WIDTH*cropFactor,HEIGHT };
 			IppiSize dimRoiSize{ dim,dim };
 			//memset(currImage8u, 0, size);
@@ -410,12 +413,12 @@ int main()
 
 //	---- prepare current input ----------------
 		ippiFilterBox_8u_C1R((Ipp8u*)currImage8u, width, blurImage, width, s, { blurSize, blurSize }, { blurSize /2, blurSize /2 });
-		VS_SetData(10, blurImage);
+		//VS_SetData(10, blurImage);
 
 		for (int i = 0; i < size; i++) {
 			float diff = (float)currImage8u[i] - (float)blurImage[i];
-			currImage_fc [i] = { diff,0 };
-			currImage_fcr[i] = { 0,diff };
+			//currImage_fc [i] = { diff,0 };
+			//currImage_fcr[i] = { 0,diff };
 			currImage8s[i] = diff / 2;
 		}
 
@@ -426,22 +429,22 @@ int main()
 		ippiFilterBox_8u_C1R((Ipp8u*)prevImage8u, width, blurImage, width, s, { blurSize, blurSize }, { blurSize / 2, blurSize / 2 });
 		for (int i = 0; i < size; i++) {
 			float diff = (float)prevImage8u[i] - (float)blurImage[i];
-			prevImage_fc [i] = { diff, 0 };
-			prevImage_fcr[i] = { 0,diff};
+			//prevImage_fc [i] = { diff, 0 };
+			//prevImage_fcr[i] = { 0,diff};
 			prevImage8s[i] = diff / 2;
-			wantedImage8s[i] = 0;
+			
 		}
 
-		VS_SetData(PREV_IMG_FC, prevImage_fc);
+		//VS_SetData(PREV_IMG_FC, prevImage_fc);
 		
 		for (int i = 0; i <  wantedSize; i++) {
 			for (int j = 0; j < wantedSize; j++) {
-				wantedImage_fc[i*width + j]  =  prevImage_fc [(wantedY + i)*width + wantedX + j];
-				wantedImage_fcr[i*width + j] =  prevImage_fcr[(wantedY + i)*width + wantedX + j];
+				//wantedImage_fc[i*width + j]  =  prevImage_fc [(wantedY + i)*width + wantedX + j];
+				//wantedImage_fcr[i*width + j] =  prevImage_fcr[(wantedY + i)*width + wantedX + j];
 				wantedImage8s[i*width + j] = prevImage8s[(wantedY + i)*width + wantedX + j];
 			}
 		}
-		VS_SetData(WANTED_IMG_FC, wantedImage_fc);
+		//VS_SetData(WANTED_IMG_FC, wantedImage_fc);
 
 
 		//dtpSend(dw, currImage_fcr, size * 2);
@@ -576,7 +579,7 @@ int main()
 		VS_Rectangle(CURR_IMG8,   caught.x-1, caught.y-1, caught.x + wantedSize, caught.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
 		VS_Rectangle(IFFT_IMG, caught.x-1, caught.y-1, caught.x + wantedSize, caught.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
 		VS_Rectangle(CURR_IMG_FC, caught.x-1, caught.y-1, caught.x + wantedSize, caught.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
-		VS_Text("dx:%d dy:%d\r\n", caught.x- wantedX, caught.y- wantedY);
+		//VS_Text("dx:%d dy:%d\r\n", caught.x- wantedX, caught.y- wantedY);
 
 		VS_Draw(VS_DRAW_ALL);
 	}
