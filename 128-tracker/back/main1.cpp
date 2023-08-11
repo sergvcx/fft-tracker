@@ -43,16 +43,19 @@ static void* memCopyPop(const void *src, void *dst, unsigned int size32) {
 	//printf("%08x %08x %8d\n", src, dst, size32);
 	if (size32&1)
 		memcpy(dst, src, size32 * sizeof(int));
-	else 
+	else {
 		nmppsCopy_32s((nm32s*)src,(nm32s*) dst, size32);
+		//halDmaStart(src, dst, size32);
+		//while (!halDmaIsCompleted());
+	}
 		//nmppsMulC_32s(src, 1, dst, size32);
 	//for(int i=0; )
 	//printf("dma start \n");
-	//halDmaStart(src, dst, size32);
+	
 	//printf("dma end \n");
 	////halSleep(1000);
 	//
-	//while (!halDmaIsCompleted());
+	
 	//printf("dma completed \n");
 	//dump_32f("%s ", dst, 128, 16,16,0);
 	return 0;
@@ -97,7 +100,7 @@ int main(){
 		printf("%d: ring:%08x data:%08x size:%8d id:%08x\n", i, ring[i], ring[i]->data, ring[i]->size, ring[i]->bufferId);
 
 	//return 1;
-	//halDmaInit();
+	halDmaInit();
 	//halEnbExtInt();
 
 
