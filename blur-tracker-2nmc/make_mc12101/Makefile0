@@ -1,0 +1,60 @@
+ROOT = ../..
+include $(ROOT)/global.mk
+#-include ../local.mk
+# BUILD AND RUN MAKEFILE
+# This makefile builds simple nmc-application containing single cpp-file  
+# Rule 'run' executes the application on MC12101 board and stores return code in ".exitcode"  file
+
+.SUFFIXES:
+
+
+ifndef MC12101
+$(warning *** WARNING: 'MC12101' environment variable is not defined! Board SDK might not have installed correctly. )
+endif 
+
+
+
+BOARD    = mc12101
+HOST     = $(BOARD)-x86
+
+
+TARGET   = main0.abs
+INC_DIRS = -I"$(MC12101)/include" -I$(NMPP)/include -I$(HAL)/include  -I$(ROOT)/include  
+LIB_DIRS = -L"$(MC12101)/lib" -L"$(NMPP)/lib"  -L"$(HAL)/lib"
+LIBS     = hal-mc12101.lib mc12101lib_nm.lib libc4f.lib libc4.lib nmpp-nmc4f.lib
+CFG      = mc12101brd-nmc0.cfg
+SRC_INC  = $(wildcard $(addsuffix /*.h,$(ROOT)/include)) 
+SRC_DIR  = ../../src_proc0/nm ../../src_proc0/common ../src_target0 ../../src/nm-sim
+SRC_CPP  = $(wildcard $(addsuffix /*.cpp,$(SRC_DIR)))
+SRC_ASM  = $(wildcard $(addsuffix /*.asm,$(SRC_DIR)))
+#HEAP =   -heap=128000000
+#HEAP =   -heap=18004
+#HEAP =   -heap=1000000 -heap1=50000
+HEAPS 			 = -heap=16384 -heap1=16384 -heap2=16384 -heap3=16384
+
+ALL: $(TARGET) 
+
+$(TARGET): $(SRC_INC) $(SRC_CPP) $(SRC_ASM) $(CFG) Makefile0
+	nmcc -o$(TARGET) -m.main.map $(SRC_CPP) $(SRC_ASM) -nmc4 -O2 $(INC_DIRS) $(LIB_DIRS) $(LIBS) -c$(CFG) $(HEAPS)
+
+
+
+PATH:=$(MC12101)/bin;$(PATH)
+
+
+
+run: $(TARGET) $(HOST)
+	bin\debug\$(HOST)
+	
+
+
+clean:
+	-$(OS_RM) *.abs *.elf *.ncb *.map *.elf *.suo *.user *.filters
+	-$(OS_RD) bin obj
+	
+kill: clean
+	-$(OS_RM) *.vcproj *.sln *.vcxproj
+	
+$(HOST).vcxproj  vs2015:	premake5.lua 
+	premake5 vs2015
+	

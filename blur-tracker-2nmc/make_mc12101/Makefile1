@@ -1,0 +1,66 @@
+ROOT = ../..
+include $(ROOT)/global.mk
+#-include ../local.mk
+HEAP ?= -heap=6384 -heap1=16384 -heap2=16384 -heap3=16384
+# BUILD AND RUN MAKEFILE
+# This makefile builds simple nmc-application containing single cpp-file  
+# Rule 'run' executes the application on MC12101 board and stores return code in ".exitcode"  file
+
+.SUFFIXES:
+
+
+ifndef MC12101
+$(warning *** WARNING: 'MC12101' environment variable is not defined! Board SDK might not have installed correctly. )
+endif 
+
+
+
+BOARD    = mc12101
+HOST     = $(BOARD)-x86
+
+
+TARGET   = main1.abs
+INC_DIRS = -I"$(MC12101)/include" -I$(ROOT)/include -I$(NMPP)/include -I$(HAL)/include -I$(NMPROFILER)/include
+LIB_DIRS = -L"$(MC12101)/lib" -L$(NMPP)/lib -L$(HAL)/lib -L$(NMPROFILER)/lib
+LIBS     = hal-mc12101.lib mc12101lib_nm.lib libc4f.lib libc4.lib nmpp-nmc4.lib nmprofiler-nmc4.lib
+CFG      = mc12101brd-nmc1.cfg
+SRC_DIR  = ../../src_proc1/nm ../../src_proc1/common ../src_target1
+SRC_INC  = $(wildcard $(addsuffix /*.h,$(ROOT)/include)) 
+SRC_CPP  = $(wildcard $(addsuffix /*.cpp,$(SRC_DIR))) 
+SRC_ASM  = $(wildcard $(addsuffix /*.asm,$(SRC_DIR))) 
+#proflist_generated.asm
+BUILDER          = linker
+HEAP			 = -heap=3000000 -heap1=35000000 -heap2=0 -heap3=0
+BUILDER_FLAGS    = -m.main1.map -c$(CFG)  -full_names $(HEAP) -o$(TARGET) $(LIB_DIRS)
+
+
+
+ALL: $(TARGET) 
+$(TARGET): $(SRC_INC) $(SRC_CPP) $(SRC_ASM) $(CFG) Makefile1
+	nmcc -o$(TARGET) -m.main1.map $(SRC_CPP) $(SRC_ASM)  -nmc4 -Wa,-split_sir -O2 $(INC_DIRS) $(LIB_DIRS) $(LIBS) -c$(CFG) $(HEAP) -full_names
+
+
+PATH:=$(MC12101)/bin;$(PATH)
+
+profile: .main1.map 
+	$(TCLSH) $(NMPROFILER)/script/generate_proflist.tcl proflist_generated.asm .main1.map
+	
+proflist_generated.asm: 
+	$(TCLSH) $(NMPROFILER)/script/generate_proflist.tcl proflist_generated.asm
+
+
+run: $(TARGET) $(HOST)
+	bin\debug\$(HOST)
+	
+
+
+clean:
+	-$(OS_RM) *.abs *.elf *.ncb *.map *.elf *.suo *.user *.filters
+	-$(OS_RD) bin obj
+	
+kill: clean
+	-$(OS_RM) *.vcproj *.sln *.vcxproj
+	
+$(HOST).vcxproj  vs2015:	premake5.lua 
+	premake5 vs2015
+
