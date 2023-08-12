@@ -121,17 +121,17 @@ int main()
 {
 
 	int file_desc = 0;
-	do {
-		file_desc = dtpOpenFile(FILE, "rb");
-	} while (file_desc < 0);
-
+	//do {
+	//	file_desc = dtpOpenFile(FILE, "rb");
+	//} while (file_desc < 0);
+	//
 	unsigned ring_addr[6];
-	//uintptr_t addr_read = 0;
-
-	dtpRecv(file_desc, ring_addr, 6);
-	dtpClose(file_desc);
-	for (int i = 0; i < 6; i++)
-		printf("%d: %x\n", i, ring_addr[i]);
+	////uintptr_t addr_read = 0;
+	//
+	//dtpRecv(file_desc, ring_addr, 6);
+	//dtpClose(file_desc);
+	//for (int i = 0; i < 6; i++)
+	//	printf("%d: %x\n", i, ring_addr[i]);
 
 
 	// -------------------------------------------------------------
@@ -549,14 +549,16 @@ int main()
 			
 			float max = 0;
 			
-			for (int i = 0; i < dim -  wantedSize ; i++) {
-				for (int j = 0; j < dim -  wantedSize; j++) {
+			for (int i = 0; i < dim ; i++) {
+				for (int j = 0; j < dim ; j++) {
 					//if (max < productIFFT_fc[i*dim + j].re) {
 					//	max = productIFFT_fc[i*dim + j].re;
 					//float abs= 
 					float re = productIFFT_fcr[i*dim + j].re;
 					float im = productIFFT_fcr[i*dim + j].im;
-					productAbs32f[i] = abs;
+					float abs = re * re + im * im;
+
+					productAbs32f[i*dim + j] = abs;
 					
 					//if (max < productIFFT_fcr[i*dim + j].re) {
 					//	max = productIFFT_fcr[i*dim + j].re;
@@ -564,20 +566,37 @@ int main()
 				}
 			}
 			
-			for (int k = 0; k < 16; k++) {
+			for (int k = 0; k < 8; k++) {
+				again:
+				for (int i = 0; i < dim - wantedSize; i++) {
+					for (int j = 0; j < dim - wantedSize; j++) {
+			
+						float abs = productAbs32f[i*dim + j];
+						if (max < abs) {
+							max = abs;
+			
+							caught.x = j;
+							caught.y = i;
+							productAbs32f[i*dim + j] = 0;
 
-			for (int i = 0; i < size ; i++) {
-				for (int j = 0; j < dim - wantedSize; j++) {
+							int caughtOrgX, caughtOrgY, caughtOrgXX, caughtOrgYY;
+							int wantedOrgX, wantedOrgY, wantedOrgXX, wantedOrgYY;
 
-					float abs = re * re + im * im;
-					if (max < abs) {
-						max = abs;
+							dimToOrg(caught.x, caught.y, caughtOrgX, caughtOrgY, dim, orgSize, cropFactor);
+							dimToOrg(caught.x + wantedSize, caught.y + wantedSize, caughtOrgXX, caughtOrgYY, dim, orgSize, cropFactor);
 
-						caught.x = j;
-						caught.y = i;
+							dimToOrg(wantedX, wantedY, wantedOrgX, wantedOrgY, dim, orgSize, cropFactor);
+							dimToOrg(wantedX + wantedSize, wantedY + wantedSize, wantedOrgXX, wantedOrgYY, dim, orgSize, cropFactor);
+
+
+							VS_Rectangle(PREV_ORIGIN_IMG, wantedOrgX - 1, wantedOrgY - 1, wantedOrgXX, wantedOrgYY, VS_RED, VS_NULL_COLOR);
+							VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgX - 1, caughtOrgY - 1, caughtOrgXX, caughtOrgYY, VS_GREEN, VS_NULL_COLOR);
+
+							goto again;
+
+						}
 					}
 				}
-			}
 			}
 			printf("currFFT_fcr:\n");
 			dump_32f("%.1f ", (float*)currFFT_fcr, 8, 16, dim * 2, 1);
