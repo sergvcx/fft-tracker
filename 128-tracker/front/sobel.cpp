@@ -63,8 +63,8 @@ void sobelCmplx(const unsigned char *source, nm32fcr* result, int width, int hei
 			//sum1 = (sum1 > 0) ? sum1 : -sum1;
 			//sum2 = (sum2 > 0) ? sum2 : -sum2;
 			//*result = MIN(255, (sum1 + sum2) / 4);
-			result->re = sum1;
-			result->im = sum2;
+			result->re = 0;
+			result->im = sum1 + sum2;// sum2;
 		}
 		result++;
 		line1++;
