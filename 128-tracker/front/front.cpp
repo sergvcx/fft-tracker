@@ -13,6 +13,7 @@
 #include "mc12101load.h"
 #include "dumpx.h"
 #include "stdio.h"
+#include "sobel.h"
 
 
 //#include "hadamard.h"
@@ -146,13 +147,14 @@ int main()
 	//if (!VS_Bind("..\\Samples\\Road1.avi"))
 	//if (!VS_Bind("..\\Samples\\Road2.avi"))
 #ifdef _DEBUG
-	//if (!VS_Bind("..\\..\\..\\Samples\\Road2.avi"))
+	if (!VS_Bind("..\\..\\..\\Samples\\Road2.avi"))
 	//if (!VS_Bind("..\\..\\..\\Samples\\strike(xvid).avi"))
-	if (!VS_Bind("..\\..\\..\\Samples\\strike256(xvid).avi"))
+	//if (!VS_Bind("..\\..\\..\\Samples\\strike256(xvid).avi"))
 
 #else 
 	if (!VS_Bind("..\\Samples\\Road2.avi"))
 #endif
+		return 0;
 
 	//if (!VS_Bind("c:/SU 57 CRAZY SCARY SOUND COMPILATION_(ms video1).avi"))
 	//if (!VS_Bind("../../Samples/SU57(xvid).avi"))
@@ -167,7 +169,6 @@ int main()
 	//if (!VS_Bind("../../Samples/Su256.avi"))
 	//if (!VS_Bind("..\\Samples\\Formula3.avi"))
 	//if (!VS_Bind("d:\\video\\films\\256x256\\2xFormula2.avi"))
-		return 0;
 	int WIDTH = VS_GetWidth(VS_SOURCE);
 	int HEIGHT = VS_GetHeight(VS_SOURCE);
 	IppiSize orgSize{ WIDTH,HEIGHT };
@@ -209,13 +210,16 @@ int main()
 	Ipp32fc *productFFT_fc	= (Ipp32fc *)ippMalloc(3*size * sizeof(Ipp32fc));
 	nm32fcr *productFFT_fcr = (nm32fcr *)malloc32(size * sizeof32(nm32fcr));
 	nm32fcr *productIFFT_fcr= (nm32fcr *)malloc32(size * sizeof32(nm32fcr));
+	nm32f	*productAbs32f  = (nm32f *)  malloc32(size * sizeof32(float));
 	Ipp32fc *productIFFT_fc = (Ipp32fc *)ippMalloc(3*size * sizeof(Ipp32fc));
 	nm32f   *currInput		= nmppsMalloc_32f(3*size);
 	nm32f   *wantedInput	= nmppsMalloc_32f(3*size);
-	nm8u	*currImage8u	= nmppsMalloc_8u(4 * size);
+	nm8u	*currImage8u_ = nmppsMalloc_8u(4 * size); memset(currImage8u_, 0, 4 * size);
+	nm8u	*currImage8u	= currImage8u_+size;
 	nm8s	*currImage8s	= nmppsMalloc_8s( size);
 	nm32s	*currImage32s   = nmppsMalloc_32s(4 * size)+size;
-	nm8u	*prevImage8u	= nmppsMalloc_8u(4 * size);
+	nm8u	*prevImage8u_	= nmppsMalloc_8u(4 * size); (prevImage8u_, 0, 4 * size);
+	nm8u	*prevImage8u	= prevImage8u_+size; 
 	nm8s	*prevImage8s	= nmppsMalloc_8s( size);
 	nm32s	*prevImage32s	= nmppsMalloc_32s(4 * size)+size;
 	nm32s	*diffImage32s	= nmppsMalloc_32s(4 * size);
@@ -268,8 +272,8 @@ int main()
 	
 	#define CURR_IMG_FC 213
 	#define PREV_IMG_FC 214
-	//VS_CreateImage("curr input(cmplx)", CURR_IMG_FC, width, height, VS_RGB32FC, 0);
-	//VS_CreateImage("prev input(cmplx)", PREV_IMG_FC, width, height, VS_RGB32FC, 0);
+	VS_CreateImage("curr input(cmplx)", CURR_IMG_FC, width, height, VS_RGB32FC, 0);
+	VS_CreateImage("prev input(cmplx)", PREV_IMG_FC, width, height, VS_RGB32FC, 0);
 	#define WANTED_IMG_FC 215
 	//VS_CreateImage("wanted input(cmplx)", WANTED_IMG_FC, dim, dim, VS_RGB32FC, 0);
 
@@ -280,7 +284,7 @@ int main()
 	
 	//VS_CreateImage("FFT*FFT(cmplx)", 332, dim, dim, VS_RGB32FC, 0);
 	#define  IFFT_IMG 333
-	//VS_CreateImage("IFFT   (cmplx)", IFFT_IMG, dim, dim, VS_RGB32FC, 0);
+	VS_CreateImage("IFFT   (cmplx)", IFFT_IMG, dim, dim, VS_RGB32FC, 0);
 	
 	#define  DIFF_IMG 334
 	//VS_CreateImage("Diff ", DIFF_IMG, width, height, VS_RGB8_32, 0);
@@ -349,15 +353,15 @@ int main()
 
 	while (status=VS_Run()) {
 
-		//for (int i = 0; i < size; i++) {
-		//	//currImage_fc[i] = { 0,0 };
+		for (int i = 0; i < size; i++) {
+			currImage_fcr[i] = { 0,0 };
 		//	//prevImage_fc[i] = { 0,0 };
 		//	wantedImage_fc[i] = { 0,0 };
-		//	wantedImage_fcr[i] = { 0,0 };
+			wantedImage_fcr[i] = { 0,0 };
 		//	//currImage8u[i] = 0;
 		//	tmp[i] = 0;
 		//	tmp2[i] = 0;
-		//}
+		}
 		memset(wantedImage8s, 0, size);
 		cropFactor = VS_GetSlider(0);
 
@@ -412,36 +416,48 @@ int main()
 		IppiSize s = {dim,dim};
 
 //	---- prepare current input ----------------
-		ippiFilterBox_8u_C1R((Ipp8u*)currImage8u, width, blurImage, width, s, { blurSize, blurSize }, { blurSize /2, blurSize /2 });
+		//ippiFilterBox_8u_C1R((Ipp8u*)currImage8u, width, blurImage, width, s, { blurSize, blurSize }, { blurSize /2, blurSize /2 });
+
+		//sobel(currImage8u, blurImage, width,  height);
+		sobelCmplx(currImage8u, currImage_fcr, width, height);
+
 		//VS_SetData(10, blurImage);
 
-		for (int i = 0; i < size; i++) {
-			float diff = (float)currImage8u[i] - (float)blurImage[i];
-			//currImage_fc [i] = { diff,0 };
-			//currImage_fcr[i] = { 0,diff };
-			currImage8s[i] = diff / 2;
-		}
+		//for (int i = 0; i < size; i++) {
+		//	//float diff = (float)currImage8u[i] - (float)blurImage[i];
+		//	// diff = (float)currImage8u[i] - (float)blurImage[i];
+		//	float diff = blurImage[i];
+		//	//currImage_fc [i] = { diff,0 };
+		//	//currImage_fcr[i] = { 0,diff };
+		//	currImage8s[i] = diff;// / 2;
+		//}
 
-		VS_SetData(CURR_IMG_FC, currImage_fc);
+		VS_SetData(CURR_IMG_FC, currImage_fcr);
 		
 		//	---- prepare wanted input ----------------
 		//ippiFilterBox_8u_C1R((Ipp8u*)prevImage8u+size, width, blurImage, width, s, { blurSize, blurSize }, { blurSize / 2, blurSize / 2 });
-		ippiFilterBox_8u_C1R((Ipp8u*)prevImage8u, width, blurImage, width, s, { blurSize, blurSize }, { blurSize / 2, blurSize / 2 });
-		for (int i = 0; i < size; i++) {
-			float diff = (float)prevImage8u[i] - (float)blurImage[i];
-			//prevImage_fc [i] = { diff, 0 };
-			//prevImage_fcr[i] = { 0,diff};
-			prevImage8s[i] = diff / 2;
-			
-		}
+		//ippiFilterBox_8u_C1R((Ipp8u*)prevImage8u, width, blurImage, width, s, { blurSize, blurSize }, { blurSize / 2, blurSize / 2 });
+		//sobel(prevImage8u, blurImage, width, height);
 
-		//VS_SetData(PREV_IMG_FC, prevImage_fc);
+		sobelCmplx(prevImage8u, prevImage_fcr, width, height);
+
+		//for (int i = 0; i < size; i++) {
+		//	//float diff = (float)prevImage8u[i] - (float)blurImage[i];
+		//	float diff = blurImage[i];
+		//
+		//	prevImage_fc [i] = { diff, 0 };
+		//	prevImage_fcr[i] = { 0,diff};
+		//	prevImage8s[i] = diff;// / 2;
+		//	
+		//}
+
+		VS_SetData(PREV_IMG_FC, prevImage_fcr);
 		
 		for (int i = 0; i <  wantedSize; i++) {
 			for (int j = 0; j < wantedSize; j++) {
 				//wantedImage_fc[i*width + j]  =  prevImage_fc [(wantedY + i)*width + wantedX + j];
-				//wantedImage_fcr[i*width + j] =  prevImage_fcr[(wantedY + i)*width + wantedX + j];
-				wantedImage8s[i*width + j] = prevImage8s[(wantedY + i)*width + wantedX + j];
+				wantedImage_fcr[i*width + j] =  prevImage_fcr[(wantedY + i)*width + wantedX + j];
+				//wantedImage8s[i*width + j] = prevImage8s[(wantedY + i)*width + wantedX + j];
 			}
 		}
 		//VS_SetData(WANTED_IMG_FC, wantedImage_fc);
@@ -449,14 +465,15 @@ int main()
 
 		//dtpSend(dw, currImage_fcr, size * 2);
 		//dtpSend(dw, wantedImage_fcr, size * 2);
-		dtpSend(dw, currImage8s,   size /4);
-		dtpSend(dw, wantedImage8s, size /4);
+		
+		//dtpSend(dw, currImage8s,   size /4);
+		//dtpSend(dw, wantedImage8s, size /4);
 		
 
 		// ----------forward fft ----------------
 		
 		
-		if (0) {
+		if (1) {
 			//st = ippiFFTFwd_CToC_32fc_C1R(currImage_fc, dim * 8, currFFT_fc, dim * 8, spec, 0);
 			//st = ippiFFTFwd_CToC_32fc_C1R(wantedImage_fc, dim * 8, wantedFFT_fc, dim * 8, spec, 0);
 
@@ -527,7 +544,7 @@ int main()
 		
 
 
-			VS_SetData(IFFT_IMG, productIFFT_fc);
+			VS_SetData(IFFT_IMG, productIFFT_fcr);
 			
 			
 			float max = 0;
@@ -536,15 +553,32 @@ int main()
 				for (int j = 0; j < dim -  wantedSize; j++) {
 					//if (max < productIFFT_fc[i*dim + j].re) {
 					//	max = productIFFT_fc[i*dim + j].re;
-					if (max < productIFFT_fcr[i*dim + j].re) {
-						max = productIFFT_fcr[i*dim + j].re;
+					//float abs= 
+					float re = productIFFT_fcr[i*dim + j].re;
+					float im = productIFFT_fcr[i*dim + j].im;
+					productAbs32f[i] = abs;
+					
+					//if (max < productIFFT_fcr[i*dim + j].re) {
+					//	max = productIFFT_fcr[i*dim + j].re;
+					
+				}
+			}
 			
+			for (int k = 0; k < 16; k++) {
+
+			for (int i = 0; i < size ; i++) {
+				for (int j = 0; j < dim - wantedSize; j++) {
+
+					float abs = re * re + im * im;
+					if (max < abs) {
+						max = abs;
+
 						caught.x = j;
 						caught.y = i;
 					}
 				}
 			}
-
+			}
 			printf("currFFT_fcr:\n");
 			dump_32f("%.1f ", (float*)currFFT_fcr, 8, 16, dim * 2, 1);
 			printf("wantedFFT_fcr:\n");
@@ -557,11 +591,12 @@ int main()
 
 		}
 		//Pos caughtNM;
-		dtpRecv(dr, &caught, sizeof32(caught));
+		
+		//dtpRecv(dr, &caught, sizeof32(caught));
 		//dtpRecv(dr, &caughtNM, sizeof32(caught));
 
 		//nmppsSub_32s(currImage32s, prevImage32s + caught.x- wantedX + (caught.y-wantedY) * dim, diffImage32s, dim*dim);
-		VS_SetData(DIFF_IMG, diffImage32s);
+		//VS_SetData(DIFF_IMG, diffImage32s);
 		int caughtOrgX, caughtOrgY, caughtOrgXX, caughtOrgYY;
 		int wantedOrgX, wantedOrgY, wantedOrgXX, wantedOrgYY;
 		

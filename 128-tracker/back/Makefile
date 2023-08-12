@@ -1,7 +1,8 @@
 
+
 all:
-	make -C Makefile0
-	make -C Makefile1
+	$(MAKE) -f Makefile0
+	$(MAKE) -f Makefile1
 	
 0:
 	$(MAKE) -f Makefile0

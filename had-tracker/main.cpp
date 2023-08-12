@@ -376,13 +376,13 @@ int main()
 			//memset(currFFT_fc, 0, dim*dim * 8);
 
 			//spec128->dstStep = dim*2;
-			spec128->dstStep =  dim*2;
+			//spec128->dstStep =  dim*2;
 			for (int i = 0; i < dim; i++) {
 				//ippsFFTFwd_CToC_32fc(currImage_fc + i * dim, (Ipp32fc*)tmpFFT_fc + i, sp128,  buffer);
 				//nmppsFFT128Fwd_32fcr(currImage_fcr+ i * dim, (nm32fcr*)tmpFFT_fc+i, spec128);
 
 				//ippsFFTFwd_CToC_32fc(currImage_fc + i * dim, (Ipp32fc*)tmpFFT_fc + i, sp128, buffer);
-				nmppsFFT128Fwd_32fcr(currImage_fcr + i * dim, (nm32fcr*)tmpFFT_fcr + i, spec128);
+				nmppsFFT128Fwd_32fcr(currImage_fcr + i * dim, 1, (nm32fcr*)tmpFFT_fcr + i, dim, spec128);
 
 
 				//ippsFFTFwd_CToC_32fc(currImage_fc + i * dim, (Ipp32fc*)tmpFFT_fc + i, sp64, buffer);
@@ -402,17 +402,17 @@ int main()
 			}
 			spec128->dstStep = dim*2;
 			for (int i = 0; i < dim; i++) {
-				nmppsFFT128Fwd_32fcr(tmpFFT_fcr  + i * dim, currFFT_fcr + i, spec128);
+				nmppsFFT128Fwd_32fcr(tmpFFT_fcr  + i * dim, 1, currFFT_fcr + i, dim, spec128);
 			}
 
 			
 			spec128->dstStep = dim * 2;
 			for (int i = 0; i < dim; i++) {
-				nmppsFFT128Fwd_32fcr(wantedImage_fcr + i * dim, tmpFFT_fcr + i, spec128);
+				nmppsFFT128Fwd_32fcr(wantedImage_fcr + i * dim, 1, tmpFFT_fcr + i,  dim , spec128);
 			}
 			
 			for (int i = 0; i < dim; i++) {
-				nmppsFFT128Fwd_32fcr(tmpFFT_fcr + i * dim, wantedFFT_fcr + i, spec128);
+				nmppsFFT128Fwd_32fcr(tmpFFT_fcr + i * dim, 1, wantedFFT_fcr + i, dim ,spec128);
 			}
 
 		}
@@ -449,11 +449,11 @@ int main()
 
 		specInv128->dstStep = dim * 2;
 		for (int i = 0; i < dim; i++) {
-			nmppsFFT128Inv_32fcr(productFFT_fcr + i * dim, tmpFFT_fcr + i, specInv128);
+			nmppsFFT128Inv_32fcr(productFFT_fcr + i * dim,1, tmpFFT_fcr + i,dim, specInv128);
 		}
 		specInv128->dstStep = dim * 2;
 		for (int i = 0; i < dim; i++) {
-			nmppsFFT128Inv_32fcr(tmpFFT_fcr + i * dim, productIFFT_fcr + i, specInv128);
+			nmppsFFT128Inv_32fcr(tmpFFT_fcr + i * dim,1, productIFFT_fcr + i,dim, specInv128);
 		}
 		
 		

@@ -12,11 +12,15 @@ $(warning *** WARNING: 'MC12101' environment variable is not defined! Board SDK 
 endif 
 
 
+
 TARGET  = test-x64
 
 VS ?= vs2017 
 #PATH:=$(MC12101)/bin;$(PATH)
-all: $(TARGET) 
+all:
+	cmake -B build -A x64 
+
+#$(TARGET) 
 
 $(TARGET): $(TARGET).vcxproj
 
