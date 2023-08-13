@@ -8,7 +8,7 @@ set(DTP 	$ENV{DTP})
 set(MC12101	$ENV{MC12101})
 set(DEV  	set(VSHELL 	$ENV{VSHELL}))
 
-include_directories(${DTP}/include 	${IPP}/include  ${NMPP}/include  ${VSHELL}/include c:/git/nmc-dev/include ${MC12101}/include)
+include_directories(${DTP}/include 	${IPP}/include  ${NMPP}/include  ${VSHELL}/include c:/git/nmc-dev/include ${MC12101}/include ../../include)
 link_directories   (${DTP}/lib 		${IPP}/lib      ${NMPP}/lib      ${VSHELL}/lib    ${MC12101}/lib)
 link_libraries(dtp-x64.lib nmpp-x64d.lib vshell.lib ippi.lib  ipps.lib ippcore.lib mc12101load.lib)
 

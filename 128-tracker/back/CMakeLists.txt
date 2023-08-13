@@ -8,7 +8,7 @@ set(DTP 	$ENV{DTP})
 set(HAL 	$ENV{HAL})
 set(DEV  	set(VSHELL 	$ENV{VSHELL}))
 
-include_directories(${DTP}/include 	${IPP}/include  ${NMPP}/include  ${VSHELL}/include c:/git/nmc-dev/include ${HAL}/include)
+include_directories(${DTP}/include 	${IPP}/include  ${NMPP}/include  ${VSHELL}/include c:/git/nmc-dev/include ${HAL}/include ../../include)
 link_directories   (${DTP}/lib 		${IPP}/lib      ${NMPP}/lib      ${VSHELL}/lib    )
 link_libraries(dtp-x64.lib nmpp-x64d.lib vshell.lib ippi.lib  ipps.lib ippcore.lib)
 

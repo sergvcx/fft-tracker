@@ -14,7 +14,8 @@
 #include "dumpx.h"
 #include "stdio.h"
 #include "sobel.h"
-
+#include "tracker.h"
+#include "crtdbg.h"
 
 //#include "hadamard.h"
 
@@ -120,13 +121,13 @@ NmppPoint prevFrame={ 0,0 };
 
 #define FILE "../exchange.bin"
 
-#define ECHO 128
-#define X86_TO_NM0_BUFFER_SIZE ECHO		//0
-#define X86_TO_NM1_BUFFER_SIZE SIZE*4	//1
-#define NM0_TO_X86_BUFFER_SIZE ECHO		//2
-#define NM1_TO_X86_BUFFER_SIZE ECHO		//3
-#define NM0_TO_NM1_BUFFER_SIZE ECHO		//4
-#define NM1_TO_NM0_BUFFER_SIZE SIZE	//5
+//#define ECHO 128
+//#define X86_TO_NM0_BUFFER_SIZE ECHO		//0
+//#define X86_TO_NM1_BUFFER_SIZE SIZE*4	//1
+//#define NM0_TO_X86_BUFFER_SIZE ECHO		//2
+//#define NM1_TO_X86_BUFFER_SIZE ECHO		//3
+//#define NM0_TO_NM1_BUFFER_SIZE ECHO		//4
+//#define NM1_TO_NM0_BUFFER_SIZE SIZE	//5
 
 
 int main()
@@ -137,20 +138,21 @@ int main()
 		file_desc = dtpOpenFile(FILE, "rb");
 	} while (file_desc < 0);
 	//
-	unsigned ring_addr[6];
+	unsigned ring_addr[3];
 	////uintptr_t addr_read = 0;
 	//
 	dtpRecv(file_desc, ring_addr, 6);
 	dtpClose(file_desc);
-	for (int i = 0; i < 6; i++)
+	for (int i = 0; i < 3; i++)
 		printf("%d: %x\n", i, ring_addr[i]);
 
 
 	// -------------------------------------------------------------
 
 
-	int dw = dtpOpenMc12101Ringbuffer(0, 1, ring_addr[1]);
-	int dr = dtpOpenMc12101Ringbuffer(0, 0, ring_addr[2]);
+	int dwCmd = dtpOpenMc12101Ringbuffer(0, 1, ring_addr[0]);
+	int dwImg = dtpOpenMc12101Ringbuffer(0, 1, ring_addr[1]);
+	int drOut = dtpOpenMc12101Ringbuffer(0, 0, ring_addr[2]);
 
 
 
@@ -159,12 +161,12 @@ int main()
 	//if (!VS_Bind("..\\Samples\\Road1.avi"))
 	//if (!VS_Bind("..\\Samples\\Road2.avi"))
 #ifdef _DEBUG
-	//if (!VS_Bind("..\\..\\..\\Samples\\Road2.avi"))
+	if (!VS_Bind("..\\..\\..\\Samples\\Road2.avi"))
 	//if (!VS_Bind("../Samples/strike(xvid).avi"))
 	//if (!VS_Bind("..\\..\\..\\Samples\\victory22_360x360(xvid).avi"))
 		//if (!VS_Bind("..\\..\\..\\Samples\\strike(xvid).avi"))
 		//if (!VS_Bind("..\\..\\..\\Samples\\strike256(xvid).avi"))
-		if (!VS_Bind("..\\..\\..\\Samples\\victory22_384x360(xvid).avi"))
+		//if (!VS_Bind("..\\..\\..\\Samples\\victory22_384x360(xvid).avi"))
 		//if (!VS_Bind("..\\..\\..\\Samples\\victory22_384x360(xvid).avi"))
 
 #else 
@@ -301,11 +303,11 @@ int main()
 #define PREV_BLUR 12
 #define CURR_BLUR 13
 #define DIFF_BLUR 14
+#define WANRED 15
 	VS_CreateImage("CurrBlur8", CURR_BLUR, width, height, VS_RGB8_8, 0);
 	VS_CreateImage("PrevBlur8", PREV_BLUR, width, height, VS_RGB8_8, 0);
 	VS_CreateImage("DiffBlur8", DIFF_BLUR, width, height, VS_RGB8_8, 0);
-
-	//VS_CreateImage("Wanted", 11, width, height, VS_RGB8_8, 0);
+	VS_CreateImage("Wanted", WANRED, width, height, VS_RGB8_8, 0);
 	//VS_CreateImage("Wanted float", 12, width, height, VS_RGB32F, 0);
 
 #define CURR_IMG_FC 213
@@ -376,6 +378,20 @@ int main()
 
 	NmppPoint caughtOrg = {0,0};
 	NmppPoint wantedOrg = {0,0};
+	Cmd_x86_to_nm1 cmd = {0,0,0,0};
+
+	cmd.command = 0x64078086;
+	cmd.counter++;
+	dtpSend(dwCmd, &cmd, sizeof32(cmd));
+
+	int handshakeMsg[] = { 0,1,2,3,4,5,6,7};
+	dtpSend(dwImg, handshakeMsg, sizeof32(handshakeMsg));
+
+	//cmd.command = 0x64088086;
+	//cmd.counter++;
+	//dtpSend(dwCmd, &cmd, sizeof32(cmd));
+
+
 
 	while (status=VS_Run()) {
 
@@ -400,9 +416,17 @@ int main()
 			if (MouseStatus.nID == PREV_ORIGIN_IMG || MouseStatus.nID == CURR_ORIGIN_IMG) {
 				currFrame.y = MouseStatus.nY;
 				currFrame.x = MouseStatus.nX;
+				currFrame.x = MIN(WIDTH - DIM,currFrame.x);
+				currFrame.y = MIN(HEIGHT- DIM,currFrame.y);
+
 				prevFrame   = currFrame;
+
+				wantedOrg.y = prevFrame.y + DIM/2;
+				wantedOrg.x = prevFrame.x + DIM/2;
+				caughtOrg = wantedOrg;
 			}
 		}
+
 		if (MouseStatus.nKey == VS_MOUSE_LBUTTON) {
 			if (MouseStatus.nID == PREV_IMG8) {
 				wantedOrg.y = prevFrame.y + MouseStatus.nY;
@@ -430,8 +454,8 @@ int main()
 			VS_SetData(1, currOriginC);
 			
 			wantedOrg = caughtOrg; 
-			currFrame.x = MIN(WIDTH - wantedSize, MAX(0,caughtOrg.x - dim/2));
-			currFrame.y = MIN(HEIGHT - wantedSize, MAX(0,caughtOrg.y - dim/2));
+			currFrame.x = MIN(WIDTH - DIM, MAX(0,caughtOrg.x - DIM/2));
+			currFrame.y = MIN(HEIGHT- DIM, MAX(0,caughtOrg.y - DIM/2));
 		}
 		resize(prevOrigin8u + prevFrame.y*WIDTH + prevFrame.x, srcRoiSize, WIDTH, prevImage8u, dimRoiSize, dim);
 		resize(currOrigin8u + currFrame.y*WIDTH + currFrame.x, srcRoiSize, WIDTH, currImage8u, dimRoiSize, dim);
@@ -444,7 +468,7 @@ int main()
 		//--------------- prepare current input ----------------
 		ippiFilterBox_8u_C1R((Ipp8u*)currImage8u, width, currBlur8u, width, dimRoiSize, { blurSize, blurSize }, { blurSize /2, blurSize /2 });
 		//sobel(currImage8u, blurImage, width,  height);
-		sobelCmplx(currImage8u, currImage_fcr, width, height);
+//		sobelCmplx(currImage8u, currImage_fcr, width, height);
 
 		VS_SetData(CURR_BLUR, currBlur8u);
 
@@ -464,7 +488,7 @@ int main()
 		VS_SetData(PREV_BLUR, prevBlur8u);
 		//ippiFilterBox_8u_C1R((Ipp8u*)prevImage8u, width, blurImage, width, s, { blurSize, blurSize }, { blurSize / 2, blurSize / 2 });
 		//sobel(prevImage8u, blurImage, width, height);
-		sobelCmplx(prevImage8u, prevImage_fcr, width, height);
+//		sobelCmplx(prevImage8u, prevImage_fcr, width, height);
 
 		for (int i = 0; i < size; i++) {
 			float diff = (float)prevImage8u[i] - (float)prevBlur8u[i];
@@ -478,6 +502,11 @@ int main()
 		// ------------------- wanted preparation --------------
 		wanted.x = wantedOrg.x - prevFrame.x;
 		wanted.y = wantedOrg.y - prevFrame.y;
+		_ASSERTE(wanted.x >= 0);
+		_ASSERTE(wanted.y >= 0);
+		_ASSERTE(wanted.x < DIM);
+		_ASSERTE(wanted.y < DIM);
+
 
 		for (int i = 0; i <  wantedSize; i++) {
 			for (int j = 0; j < wantedSize; j++) {
@@ -487,6 +516,7 @@ int main()
 			}
 		}
 
+		
 		// ----------------- BLUR  MASK ------------
 		float blurPoint = prevBlur8u[(wanted.y + wantedSize / 2)*dim + wanted.x + wantedSize / 2];
 		for (int i = 0; i < dim - wantedSize; i++) {
@@ -495,6 +525,7 @@ int main()
 			}
 		}
 		VS_SetData(DIFF_BLUR, diffBlur8u);
+		VS_SetData(WANRED, wantedImage8s);
 
 
 		//VS_SetData(WANTED_IMG_FC, wantedImage_fc);
@@ -503,14 +534,27 @@ int main()
 		//dtpSend(dw, currImage_fcr, size * 2);
 		//dtpSend(dw, wantedImage_fcr, size * 2);
 		
-		dtpSend(dw, currImage8s,   size /4);
-		dtpSend(dw, wantedImage8s, size /4);
+
+		dtpSend(dwImg, currImage8s, size / 4);
+		cmd.command = DO_FFT0;
+		cmd.counter++;
+		dtpSend(dwCmd, &cmd, sizeof32(cmd));
+		
+		dtpSend(dwImg, wantedImage8s, size / 4);
+		cmd.command = DO_FFT1;
+		cmd.counter++;
+		dtpSend(dwCmd, &cmd, sizeof32(cmd));
+
+		cmd.command = DO_CORR;
+		cmd.counter++;
+		dtpSend(dwCmd, &cmd, sizeof32(cmd));
+
 		
 
 		// ----------forward fft ----------------
 		
 		NmppPoint caught0 = { 0,0 };
-		if (1) {
+		if (0) {
 			//st = ippiFFTFwd_CToC_32fc_C1R(currImage_fc, dim * 8, currFFT_fc, dim * 8, spec, 0);
 			//st = ippiFFTFwd_CToC_32fc_C1R(wantedImage_fc, dim * 8, wantedFFT_fc, dim * 8, spec, 0);
 
@@ -632,7 +676,7 @@ int main()
 					caughtOrg.y = currFrame.y + caught.y*scale;
 
 					VS_Rectangle(CURR_ORIGIN_IMG, caughtOrg.x, caughtOrg.y, caughtOrg.x + wantedSize * scale, caughtOrg.y + wantedSize * scale, VS_GREEN, VS_NULL_COLOR);
-					VS_Rectangle(CURR_IMG8, caught.x, caught.y, caught.x + wantedSize, caught.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
+					VS_Rectangle(CURR_IMG8,       caught.x, caught.y, caught.x + wantedSize, caught.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
 
 
 					//wantedOrg.x = frame.x + wanted.x*scale;
@@ -682,7 +726,11 @@ int main()
 		VS_Rectangle(PREV_ORIGIN_IMG, prevFrame.x , prevFrame.y , prevFrame.x + dim*scale, prevFrame.y + dim*scale, VS_BLUE, VS_NULL_COLOR);
 		VS_Rectangle(CURR_ORIGIN_IMG, currFrame.x , currFrame.y , currFrame.x + dim*scale, currFrame.y + dim*scale, VS_BLUE, VS_NULL_COLOR);
 		
-		dtpRecv(dr, &caught, sizeof32(caught));
+		dtpRecv(drOut, &caught, sizeof32(caught));
+		_ASSERTE(caught.x >= 0);
+		_ASSERTE(caught.y >= 0);
+		_ASSERTE(caught.x < DIM);
+		_ASSERTE(caught.y < DIM);
 		//dtpRecv(dr, &caughtNM, sizeof32(caught));
 
 		//nmppsSub_32s(currImage32s, prevImage32s + caught.x- wanted.x + (caught.y-wanted.y) * dim, diffImage32s, dim*dim);
@@ -698,7 +746,11 @@ int main()
 		//wantedOrg.y = frame.y + wanted.y*scale;
 		caughtOrg.x = currFrame.x + caught.x*scale;
 		caughtOrg.y = currFrame.y + caught.y*scale;
-		
+		_ASSERTE(caughtOrg.x >= 0);
+		_ASSERTE(caughtOrg.y >= 0);
+		_ASSERTE(caughtOrg.x < WIDTH);
+		_ASSERTE(caughtOrg.y < HEIGHT);
+
 		VS_Rectangle(PREV_ORIGIN_IMG, wantedOrg.x , wantedOrg.y , wantedOrg.x + wantedSize * scale , wantedOrg.y + wantedSize * scale, VS_RED, VS_NULL_COLOR);
 		VS_Rectangle(CURR_ORIGIN_IMG, caughtOrg.x , caughtOrg.y , caughtOrg.x + wantedSize * scale,  caughtOrg.y + wantedSize * scale, VS_GREEN, VS_NULL_COLOR);
 		VS_Rectangle(PREV_IMG8, wanted.x, wanted.y, wanted.x + wantedSize, wanted.y + wantedSize, VS_RED, VS_NULL_COLOR);
