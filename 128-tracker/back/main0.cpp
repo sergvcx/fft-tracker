@@ -14,7 +14,7 @@
 #include "hal/ringbuffert.h"
 #include "dumpx.h"
 #include "mc12101load_nm.h"
-
+#include "nmtype.h"
 void swap(void** ptr0, void** ptr1) {
 	void* tmp = *ptr1;
 	*ptr1 = *ptr0;
@@ -22,10 +22,22 @@ void swap(void** ptr0, void** ptr1) {
 }
 
 
-struct Pos{
-	int x;
-	int y;
-} caught;
+
+struct {
+	unsigned cmdIndex;
+	unsigned cmdId;
+} Cmd_nm1_to_nm0;
+
+struct {
+	unsigned cmdIndex;
+	unsigned cmdId;
+	unsigned frmIndex;
+	unsigned frmAddress;
+	NmppSize frmSize;
+	NmppRect frmRoi;
+} Cmd_x86_to_nm1;
+
+NmppPoint caught;
 
 const int WIDTH = 128;
 const int HEIGHT= 128;
@@ -74,19 +86,13 @@ __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm0_to_n
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm1_to_nm0;
 
 
-__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_x86_to_nm0;
-__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_x86_to_nm1;
-__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm0_to_x86;
-
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_cmd_x86_to_nm1;
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_img_x86_to_nm1;
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_cnv_nm1_to_x86;
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_cmd_nm1_to_nm0;
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_in_nm1_to_nm0;
-__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_out_nm0_to_nm1  ;
+__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_out_nm0_to_nm1;
 
-__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm0_to_nm1;
-__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm1_to_nm0;
 
 
 //__attribute__((section(".data.shmem1"))) int x86_to_nm1_buffer[X86_TO_NM1_BUFFER_SIZE];
@@ -96,8 +102,8 @@ __attribute__((section(".data.shmem0"))) int nm1_to_x86_buffer[NM1_TO_X86_BUFFER
 __attribute__((section(".data.shmem0"))) int nm0_to_nm1_buffer[NM0_TO_NM1_BUFFER_SIZE];
 
 __attribute__((section(".data.shmem0"))) int data_cmd_x86_to_nm1[128 * sizeof32(Cmd_x86_to_nm1)];
-__attribute__((section(".data.shmem0"))) int data_img_x86_to_nm1[1024*256*256/4];
-__attribute__((section(".data.shmem0"))) int data_cnd_nm1_x86[4*DIM*DIM];
+__attribute__((section(".data.emi"))) int data_img_x86_to_nm1[1024*256*256/4];
+//__attribute__((section(".data.shmem0"))) int data_cnd_nm1_x86[4*DIM*DIM];
 
 
 __attribute__((section(".data.emi"))) int img_m1_to_nm0_buffer[FULL_BANK];
@@ -109,19 +115,6 @@ __attribute__((section(".data.emi"))) int img_m1_to_nm0_buffer[FULL_BANK];
 #define DO_CONV 3
 
 
-struct {
-	unsigned cmdIndex;
-	unsigned cmdId;
-} Cmd_nm1_to_nm0;
-
-struct {
-	unsigned cmdIndex;
-	unsigned cmdId;
-	unsigned frmIndex;
-	unsigned frmAddress;
-	NmppSize frmSize;
-	NmppRect frmRoi;
-} Cmd_x86_to_nm1;
 
 
 //HalRingBufferData<int, 128 * 128 * 4> ring;
@@ -342,7 +335,7 @@ int main()
 		//printf("<<<]\n:");
 		dtpRecv(rbIn, productFFT_fcr, size);
 		t1 = clock();
-		//printf("time= %ld\n", t1 - t0);
+		printf("time= %ld\n", t1 - t0);
 
 		nmppsConvert_32s32fcr((nm32s*)tmpFFT_fcr,currImage_fcr, size);
 

@@ -100,13 +100,11 @@ IppStatus resize(Ipp8u* pSrc, IppiSize srcSize, Ipp32s srcStep, Ipp8u* pDst, Ipp
 //	dimX = (orgX - orgSize.width / 2) * dim / orgSize.width / cropFactor + dim / 2 ;
 //	dimY = (orgY - orgSize.height/ 2) * dim / orgSize.height / 1.0 + dim / 2;
 //}
-struct Pos {
-	int x;
-	int y;
-} caught;
 
-Pos currFrame={ 0,0 };
-Pos prevFrame={ 0,0 };
+NmppPoint caught = {0,0};
+
+NmppPoint currFrame={ 0,0 };
+NmppPoint prevFrame={ 0,0 };
 //void dimToOrg(int dimX,int dimY,int &orgX,int &orgY,int dim,IppiSize orgSize,float cropFactor) {
 //		orgX = orgSize.width*cropFactor / dim * ( dimX-dim/2) + orgSize.width / 2+frame.x;
 //		orgY = orgSize.height*1.0 / dim * (dimY- dim / 2 ) + orgSize.height / 2 +frame.y;
@@ -135,17 +133,17 @@ int main()
 {
 
 	int file_desc = 0;
-	//do {
-	//	file_desc = dtpOpenFile(FILE, "rb");
-	//} while (file_desc < 0);
+	do {
+		file_desc = dtpOpenFile(FILE, "rb");
+	} while (file_desc < 0);
 	//
 	unsigned ring_addr[6];
 	////uintptr_t addr_read = 0;
 	//
-	//dtpRecv(file_desc, ring_addr, 6);
-	//dtpClose(file_desc);
-	//for (int i = 0; i < 6; i++)
-	//	printf("%d: %x\n", i, ring_addr[i]);
+	dtpRecv(file_desc, ring_addr, 6);
+	dtpClose(file_desc);
+	for (int i = 0; i < 6; i++)
+		printf("%d: %x\n", i, ring_addr[i]);
 
 
 	// -------------------------------------------------------------
@@ -341,7 +339,7 @@ int main()
 
 
 	int wantedSize = 10;
-	Pos wanted = { 10,60 };
+	NmppPoint wanted = { 10,60 };
 
 	caught.x = 10;
 	caught.y = 10;
@@ -377,8 +375,8 @@ int main()
 	//}
 
 
-	Pos caughtOrg = {0,0};// , caughtOrg.xX, caughtOrg.yY;
-	Pos wantedOrg = {0,0};// , wantedOrg.y;// , wantedOrg.xX, wantedOrg.yY;
+	NmppPoint caughtOrg = {0,0};// , caughtOrg.xX, caughtOrg.yY;
+	NmppPoint wantedOrg = {0,0};// , wantedOrg.y;// , wantedOrg.xX, wantedOrg.yY;
 
 	while (status=VS_Run()) {
 
@@ -495,7 +493,7 @@ int main()
 			//currImage_fcr[i] = { 0,diff };
 			currImage_fcr[i].re = diff ;
 			//currImage_fcr[i] = { diff,0};
-		//	currImage8s[i] = diff;// / 2;
+			currImage8s[i] = diff;// / 2;
 		}
 
 		VS_SetData(CURR_IMG_FC, currImage_fcr);
@@ -512,7 +510,7 @@ int main()
 		//	prevImage_fc [i] = { diff, 0 };
 			//prevImage_fcr[i] = { 0,diff};
 			prevImage_fcr[i].re= diff;
-		//	prevImage8s[i] = diff;// / 2;
+			prevImage8s[i] = diff;// / 2;
 		//	
 		}
 
@@ -527,7 +525,7 @@ int main()
 			for (int j = 0; j < wantedSize; j++) {
 				//wantedImage_fc[i*width + j]  =  prevImage_fc [(wanted.y + i)*width + wanted.x + j];
 				wantedImage_fcr[i*width + j] =  prevImage_fcr[(wanted.y + i)*width + wanted.x + j];
-				//wantedImage8s[i*width + j] = prevImage8s[(wanted.y + i)*width + wanted.x + j];
+				wantedImage8s[i*width + j] = prevImage8s[(wanted.y + i)*width + wanted.x + j];
 			}
 		}
 
@@ -547,13 +545,13 @@ int main()
 		//dtpSend(dw, currImage_fcr, size * 2);
 		//dtpSend(dw, wantedImage_fcr, size * 2);
 		
-		//dtpSend(dw, currImage8s,   size /4);
-		//dtpSend(dw, wantedImage8s, size /4);
+		dtpSend(dw, currImage8s,   size /4);
+		dtpSend(dw, wantedImage8s, size /4);
 		
 
 		// ----------forward fft ----------------
 		
-		Pos caught0 = { 0,0 };
+		NmppPoint caught0 = { 0,0 };
 		if (1) {
 			//st = ippiFFTFwd_CToC_32fc_C1R(currImage_fc, dim * 8, currFFT_fc, dim * 8, spec, 0);
 			//st = ippiFFTFwd_CToC_32fc_C1R(wantedImage_fc, dim * 8, wantedFFT_fc, dim * 8, spec, 0);
@@ -722,11 +720,11 @@ int main()
 
 		}
 		caught= caught0 ;
-		//Pos caughtNM;
+		//NmppPoint caughtNM;
 		VS_Rectangle(PREV_ORIGIN_IMG, prevFrame.x , prevFrame.y , prevFrame.x + dim*scale, prevFrame.y + dim*scale, VS_BLUE, VS_NULL_COLOR);
 		VS_Rectangle(CURR_ORIGIN_IMG, currFrame.x , currFrame.y , currFrame.x + dim*scale, currFrame.y + dim*scale, VS_BLUE, VS_NULL_COLOR);
 		
-		//dtpRecv(dr, &caught, sizeof32(caught));
+		dtpRecv(dr, &caught, sizeof32(caught));
 		//dtpRecv(dr, &caughtNM, sizeof32(caught));
 
 		//nmppsSub_32s(currImage32s, prevImage32s + caught.x- wanted.x + (caught.y-wanted.y) * dim, diffImage32s, dim*dim);

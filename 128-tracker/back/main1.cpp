@@ -117,16 +117,16 @@ int main(){
 
 
 	while (1) {
-		//printf("<<< 1:\n");
+		printf("<<< 1:\n");
 		dtpRecv(rbIn, ringBufferLo, SIZE/4);
 		nmppsConvert_8s32s((nm8s*)ringBufferLo, (nm32s*)ringBufferHi, SIZE);
 		
-		//printf(">>> 2:\n");
+		printf(">>> 2:\n");
 		dtpSend(rbOut, ringBufferHi, SIZE );
-		//printf("<<< 3:\n");
+		printf("<<< 3:\n");
 		dtpRecv(rbIn, ringBufferLo, SIZE /4);
 		nmppsConvert_8s32s((nm8s*)ringBufferLo, (nm32s*)ringBufferHi, SIZE);
-		//printf(">>>> 4:\n");
+		printf(">>>> 4:\n");
 		dtpSend(rbOut, ringBufferHi, SIZE );
 	}
 
