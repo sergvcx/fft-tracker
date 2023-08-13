@@ -9,17 +9,15 @@
 #include "dumpx.h"
 #include "tracker.h"
 
-const int WIDTH = 128;
-const int HEIGHT = 128;
-const int ECHO = 128;
-//const int SIZE =  WIDTH * HEIGHT;
-
+Cmd_x86_to_nm1 cmdIn;
+Cmd_nm1_to_nm0 cmdOut = { 0,0 };
 
 __attribute__((section(".data.imu3"))) 	int ringBufferLo[32*1024];
 __attribute__((section(".data.imu1"))) 	nm32fcr ringBufferHi[DIM*DIM];
 
 #define FULL_BANK 32*1024 // 128kB
 //__attribute__((section(".data.imu3"))) int x86_to_nm1_buffer[FULL_BANK];
+
 
 static void* memCopyPop(const void *src, void *dst, unsigned int size32) {
 	//if ((int)src & 1 || (int)dst & 1 || size32 & 1)
@@ -28,10 +26,11 @@ static void* memCopyPop(const void *src, void *dst, unsigned int size32) {
 	if (size32&1 || size32<4)
 		memcpy(dst, src, size32 * sizeof(int));
 	else {
-		//memcpy(dst, src, size32 * sizeof(int));
+		memcpy(dst, src, size32 * sizeof(int));
 		//nmppsCopy_32s((nm32s*)src,(nm32s*) dst, size32);
-		halDmaStart(src, dst, size32);
-		while (!halDmaIsCompleted());
+		//halDmaStart(src, dst, size32);
+		
+		//while (!halDmaIsCompleted());
 	}
 	return 0;
 }
@@ -84,9 +83,7 @@ int main(){
 	
 	int rbImg=dtpOpenRingbuffer(ring_x86_to_nm1_img, memCopyPush, memCopyPop);
 	
-	Cmd_x86_to_nm1 cmdIn;
-	Cmd_nm1_to_nm0 cmdOut = {0,0};
-
+	
 	cmdOut.command = 0x6407600D;
 	cmdOut.counter++;
 	printf("Sending hanshake to nm1 ... \n");
@@ -100,10 +97,21 @@ int main(){
 		return -1;
 	}
 	
-	int handshake[8];
-	dtpRecv(rbImg, handshake, 8);
-	for (int i = 0; i < 8; i++)
-		printf("% d\n", handshake[i]);
+	
+	NmppSize imgDim = cmdIn.frmSize;
+	int imgSize32 = imgDim.height*imgDim.width/4;
+	printf("imfSize32 =%d\n", imgSize32);
+	printf("width     =%d\n", cmdIn.frmSize.width);
+	printf("height    =%d\n", cmdIn.frmSize.height);
+	printf("roi.width =%d\n", cmdIn.frmRoi.width);
+	printf("roi.height=%d\n", cmdIn.frmRoi.height);
+	printf("roi.x     =%d\n", cmdIn.frmRoi.x);
+	printf("roi.y     =%d\n", cmdIn.frmRoi.y);
+
+	//int handshake[8];
+	//dtpRecv(rbImg, handshake, 8);
+	//for (int i = 0; i < 8; i++)
+	//	printf("% d\n", handshake[i]);
 	
 	printf("Starting nm1 ... \n");
 
@@ -114,10 +122,24 @@ int main(){
 	while (1) {
 		//printf("<<< 1:\n");
 		dtpRecv(rbCmdToNm1, &cmdIn, sizeof32(cmdIn));
-		printf("in: %d 0x%x\n", cmdIn.counter, cmdIn.command);
+		printf("--------- [in] cnt:%d cmd:0x%x frmIndex:%d------ \n", cmdIn.counter, cmdIn.command, cmdIn.frmIndex);
 
 		if (cmdIn.command == DO_FFT0) {
-			dtpRecv(rbImg, ringBufferLo, DIM*DIM/4);
+
+			while (cmdIn.frmIndex >= ring_x86_to_nm1_img->head ) {
+				printf("ring_x86_to_nm1_img: head:%d tail:%d\n", ring_x86_to_nm1_img->head, ring_x86_to_nm1_img->tail);
+			}
+			int *roi = ring_x86_to_nm1_img->data +cmdIn.frmIndex*imgSize32 + cmdIn.frmRoi.y*imgDim.width / 4 + cmdIn.frmRoi.x / 4;
+			halDma2D_Start(roi, ringBufferLo, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM/4);
+			while (!halDmaIsCompleted());
+			int *tail=ring_x86_to_nm1_img->ptrTail();
+			printf("%x %x %d\n", roi, tail, cmdIn.frmIndex);
+			
+				
+			//dtpRecv(rbImg, ringBufferLo, DIM*DIM/4);
+			//memcpy(ringBufferLo, roi, DIM*DIM / 4);
+
+			ring_x86_to_nm1_img->tail+=DIM*DIM/4;
 			printf("in: recv ok\n");
 			while (ring_nm1_to_nm0_diff->isFull()) {
 				printf("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff->head, ring_nm1_to_nm0_diff->tail);
@@ -130,11 +152,23 @@ int main(){
 			dtpSend(rbCmdToNm0, &cmdOut, sizeof32(cmdOut));
 		}
 		else if (cmdIn.command == DO_FFT1) {
-			dtpRecv(rbImg, ringBufferLo, DIM*DIM/4);
-			printf("in: recv ok\n");
+			//dtpRecv(rbImg, ringBufferLo, DIM*DIM/4);
 			while (ring_nm1_to_nm0_diff->isFull()) {
 				printf("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff->head, ring_nm1_to_nm0_diff->tail);
 			};
+			while (cmdIn.frmIndex >= ring_x86_to_nm1_img->head) {
+				printf("ring_x86_to_nm1_img: head:%d tail:%d\n", ring_x86_to_nm1_img->head, ring_x86_to_nm1_img->tail);
+			}
+			int *roi = ring_x86_to_nm1_img->data + cmdIn.frmIndex*imgSize32 + cmdIn.frmRoi.y*imgDim.width / 4 + cmdIn.frmRoi.x / 4;
+			halDma2D_Start(roi, ringBufferLo, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM / 4);
+			while (!halDmaIsCompleted());
+			int *tail = ring_x86_to_nm1_img->ptrTail();
+
+
+			printf("in: recv ok\n");
+			printf("%x %x %d\n", roi, tail, cmdIn.frmIndex);
+
+			ring_x86_to_nm1_img->tail += DIM * DIM / 4;
 			nmppsConvert_8s32s((nm8s*)ringBufferLo, (nm32s*)ring_nm1_to_nm0_diff->ptrHead(), DIM*DIM);
 			ring_nm1_to_nm0_diff->head+=DIM * DIM;
 			cmdOut.counter++;

@@ -382,17 +382,25 @@ int main()
 
 	cmd.command = 0x64078086;
 	cmd.counter++;
+	cmd.frmIndex = 0;
+	cmd.frmRoi.height = DIM;
+	cmd.frmRoi.width = DIM;
+	cmd.frmRoi.x = 0;
+	cmd.frmRoi.y = 0;
+	cmd.frmSize.height = DIM;
+	cmd.frmSize.width = DIM;
+
 	dtpSend(dwCmd, &cmd, sizeof32(cmd));
 
-	int handshakeMsg[] = { 0,1,2,3,4,5,6,7};
-	dtpSend(dwImg, handshakeMsg, sizeof32(handshakeMsg));
+	//int handshakeMsg[] = { 0,1,2,3,4,5,6,7};
+	//dtpSend(dwImg, handshakeMsg, sizeof32(handshakeMsg));
 
 	//cmd.command = 0x64088086;
 	//cmd.counter++;
 	//dtpSend(dwCmd, &cmd, sizeof32(cmd));
 
-
-
+	//VS_GetGrayData(VS_SOURCE, currOrigin8u);
+	int counter = 0;
 	while (status=VS_Run()) {
 
 		for (int i = 0; i < size; i++) {
@@ -450,6 +458,10 @@ int main()
 			
 			VS_GetData(VS_SOURCE, currOriginC);
 			VS_GetGrayData(VS_SOURCE, currOrigin8u);
+			if (VS_GetSrcFrameNum() == 0) {
+				VS_GetData(VS_SOURCE, prevOriginC);
+				VS_GetGrayData(VS_SOURCE, prevOrigin8u);
+			}
 			VS_SetData(0, prevOriginC);
 			VS_SetData(1, currOriginC);
 			
@@ -530,24 +542,32 @@ int main()
 
 		//VS_SetData(WANTED_IMG_FC, wantedImage_fc);
 
-
-		//dtpSend(dw, currImage_fcr, size * 2);
-		//dtpSend(dw, wantedImage_fcr, size * 2);
+//*************************************************************************************
+//*************************************************************************************
+//*************************************************************************************
+//*************************************************************************************
+//*************************************************************************************
 		
-
+		//---------------------------------
 		dtpSend(dwImg, currImage8s, size / 4);
-		cmd.command = DO_FFT0;
-		cmd.counter++;
-		dtpSend(dwCmd, &cmd, sizeof32(cmd));
 		
+		cmd.command = DO_FFT0;
+		dtpSend(dwCmd, &cmd, sizeof32(cmd));
+		cmd.counter++;
+		cmd.frmIndex++;
+		
+		//---------------------------------
 		dtpSend(dwImg, wantedImage8s, size / 4);
+		
 		cmd.command = DO_FFT1;
-		cmd.counter++;
 		dtpSend(dwCmd, &cmd, sizeof32(cmd));
+		cmd.counter++;
+		cmd.frmIndex++;
 
+		//---------------------------------
 		cmd.command = DO_CORR;
-		cmd.counter++;
 		dtpSend(dwCmd, &cmd, sizeof32(cmd));
+		cmd.counter++;
 
 		
 
