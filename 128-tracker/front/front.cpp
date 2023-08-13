@@ -161,11 +161,13 @@ int main()
 	//if (!VS_Bind("..\\Samples\\Road1.avi"))
 	//if (!VS_Bind("..\\Samples\\Road2.avi"))
 #ifdef _DEBUG
-	if (!VS_Bind("..\\..\\..\\Samples\\Road2.avi"))
+	//if (!VS_Bind("..\\..\\..\\Samples\\Road2.avi"))
 	//if (!VS_Bind("../Samples/strike(xvid).avi"))
 	//if (!VS_Bind("..\\..\\..\\Samples\\victory22_360x360(xvid).avi"))
 		//if (!VS_Bind("..\\..\\..\\Samples\\strike(xvid).avi"))
 		//if (!VS_Bind("..\\..\\..\\Samples\\strike256(xvid).avi"))
+		if (!VS_Bind("..\\..\\..\\Samples\\victory22_384x360(xvid).avi"))
+		//if (!VS_Bind("..\\..\\..\\Samples\\victory22_384x360(xvid).avi"))
 
 #else 
 	if (!VS_Bind("..\\Samples\\Road2.avi"))
@@ -383,8 +385,6 @@ int main()
 		for (int i = 0; i < size; i++) {
 			currImage_fcr[i] = { 0,0 };
 			prevImage_fcr[i] = { 0,0 };
-		//	//prevImage_fc[i] = { 0,0 };
-		//	wantedImage_fc[i] = { 0,0 };
 			wantedImage_fcr[i] = { 0,0 };
 		//	//currImage8u[i] = 0;
 		//	tmp[i] = 0;
@@ -396,6 +396,58 @@ int main()
 		float scale = VS_GetSlider(SLIDER_SCALE);
 		IppiSize srcRoiSize = { dim*scale,dim*scale };
 		IppiSize dimRoiSize = { dim,dim };
+
+		int wantedSize = VS_GetSlider(1);
+		int blurSize = VS_GetSlider(2);
+		VS_GetMouseStatus(&MouseStatus);
+		
+		if (MouseStatus.nKey == VS_MOUSE_CONTROL) {
+			//if (MouseStatus.nKey == VS_MOUSE_LBUTTON)
+
+			if (MouseStatus.nID == PREV_ORIGIN_IMG || MouseStatus.nID == CURR_ORIGIN_IMG) {
+				currFrame.y = MouseStatus.nY;
+				currFrame.x = MouseStatus.nX;
+			
+				prevFrame.y = MouseStatus.nY;
+				prevFrame.x = MouseStatus.nX;
+
+				//resize(currOrigin8u + currFrame.y*WIDTH + currFrame.x, srcRoiSize, WIDTH, currImage8u, dimRoiSize, dim);
+
+			}
+			//if (MouseStatus.nID == PREV_ORIGIN_IMG || MouseStatus.nID == CURR_ORIGIN_IMG) {
+			//	orgToDim(MouseStatus.nX, MouseStatus.nY, wanted.x, wanted.y, dim, orgSize, cropFactor);
+			//}
+		}
+
+
+		if (MouseStatus.nKey == VS_MOUSE_LBUTTON) {
+			//if (MouseStatus.nID == PREV_IMG8) {
+			//	wantedOrg.y = MouseStatus.nY;
+			//	wantedOrg.x = MouseStatus.nX;
+			//}
+			if (MouseStatus.nID == PREV_ORIGIN_IMG || MouseStatus.nID == CURR_ORIGIN_IMG) {
+				//orgToDim(MouseStatus.nX, MouseStatus.nY, wanted.x, wanted.y, dim, orgSize, cropFactor);
+
+				//prevFrame.y = MouseStatus.nY;
+				//prevFrame.x = MouseStatus.nX;
+
+				//resize(prevOrigin8u + prevFrame.y*WIDTH + prevFrame.x, srcRoiSize, WIDTH, prevImage8u, dimRoiSize, dim);
+				//resize(prevOrigin8u + prevFrame.y*WIDTH + prevFrame.x, srcRoiSize, WIDTH, prevImage8u, dimRoiSize, dim);
+
+
+				wantedOrg.x = MouseStatus.nX;
+				wantedOrg.y = MouseStatus.nY;
+
+				//prevFrame.x = MIN(WIDTH - wantedSize, MAX(0, wantedOrg.x - dim / 2));// frame.x + caught.x / scale - dim / 2;
+				//prevFrame.y = MIN(HEIGHT - wantedSize, MAX(0, wantedOrg.y - dim / 2));// frame.x + caught.x / scale - dim / 2;
+				
+				//resize(prevOrigin8u + prevFrame.y*WIDTH + prevFrame.x, srcRoiSize, WIDTH, prevImage8u, dimRoiSize, dim);
+
+				//wanted.x = (MouseStatus.nX - frame.x)/scale;
+//wanted.y = (MouseStatus.nY - frame.y)/scale;
+			}
+		}
+
 
 		if (!(status&VS_PAUSE)) {
 			// если не пауза
@@ -413,98 +465,26 @@ int main()
 			VS_SetData(0, prevOriginC);
 			VS_SetData(1, currOriginC);
 			
-			//nmppsConvert_8u32u(prevImage8u,(nm32u*)prevImage32s,dim*dim);
-			//nmppsConvert_8u32u(currImage8u,(nm32u*)currImage32s,dim*dim);
-			
-			//IppiSize srcRoiSize{ WIDTH*cropFactor,HEIGHT };
-			//resize(currOrigin8u + int(WIDTH*(1 - cropFactor) / 2), srcRoiSize, WIDTH, currImage8u, dimRoiSize, dim);
-			
-			//memset(currImage8u, 0, size);
-
 			wantedOrg = caughtOrg; // frame.x + wanted.x*scale;
-			//wantedOrg.y = frame.y + wanted.y*scale;
-
-			//wanted.x = MAX(0,caughtOrg.x-frame.x);
-			//wanted.y = MAX(0,caughtOrg.y-frame.y);
 			
-			currFrame.x = MAX(0,caughtOrg.x - dim/2);// frame.x + caught.x / scale - dim / 2;
-			currFrame.y = MAX(0,caughtOrg.y - dim/2);// frame.x + caught.x / scale - dim / 2;
-			//frame.y = frame.y + caught.y/scale - dim / 2;
-			//frame.y = wanted.x - dim / 2;
-
-
-
-			//wanted.x = caught.x;
-			//wanted.y = caught.y;
-
-			
-			resize(prevOrigin8u + prevFrame.y*WIDTH + prevFrame.x, srcRoiSize, WIDTH, prevImage8u, dimRoiSize, dim);
-			resize(currOrigin8u + currFrame.y*WIDTH + currFrame.x, srcRoiSize, WIDTH, currImage8u, dimRoiSize, dim);
-
-			
-			//VS_GetGrayData(VS_SOURCE, currImage8u+size);
-			//VS_GetGrayData(VS_SOURCE, currImage8u + 2*size);
+			currFrame.x = MIN(WIDTH - wantedSize, MAX(0,caughtOrg.x - dim/2));// frame.x + caught.x / scale - dim / 2;
+			currFrame.y = MIN(HEIGHT - wantedSize, MAX(0,caughtOrg.y - dim/2));// frame.x + caught.x / scale - dim / 2;
+		
 		}
 		
+		resize(prevOrigin8u + prevFrame.y*WIDTH + prevFrame.x, srcRoiSize, WIDTH, prevImage8u, dimRoiSize, dim);
+		resize(currOrigin8u + currFrame.y*WIDTH + currFrame.x, srcRoiSize, WIDTH, currImage8u, dimRoiSize, dim);
+
 		//ippiSuperSampling_8u_C1R(currOrigin8u, WIDTH, srcRoiSize, currOrigin8u, dim, dimRoiSize, buffer);
+		VS_SetData(PREV_IMG8, prevImage8u);
 		VS_SetData(CURR_IMG8, currImage8u);
-		
-		int wantedSize = VS_GetSlider(1);
-		int blurSize   = VS_GetSlider(2);
-		VS_GetMouseStatus(&MouseStatus);
-		if (MouseStatus.nKey == VS_MOUSE_CONTROL) {
-			//if (MouseStatus.nKey == VS_MOUSE_LBUTTON)
-
-			if (MouseStatus.nID == PREV_ORIGIN_IMG) {
-				currFrame.y = MouseStatus.nY;
-				currFrame.x = MouseStatus.nX;
-
-				resize(currOrigin8u + currFrame.y*WIDTH + currFrame.x, srcRoiSize, WIDTH, currImage8u, dimRoiSize, dim);
-
-			}
-			//if (MouseStatus.nID == PREV_ORIGIN_IMG || MouseStatus.nID == CURR_ORIGIN_IMG) {
-			//	orgToDim(MouseStatus.nX, MouseStatus.nY, wanted.x, wanted.y, dim, orgSize, cropFactor);
-			//}
-		}
-
-
-		if (MouseStatus.nKey == VS_MOUSE_LBUTTON) {
-			//if (MouseStatus.nID == PREV_IMG8) {
-			//	wantedOrg.y = MouseStatus.nY;
-			//	wantedOrg.x = MouseStatus.nX;
-			//}
-			if (MouseStatus.nID == PREV_ORIGIN_IMG || MouseStatus.nID == CURR_ORIGIN_IMG) {
-				//orgToDim(MouseStatus.nX, MouseStatus.nY, wanted.x, wanted.y, dim, orgSize, cropFactor);
-			
-				//prevFrame.y = MouseStatus.nY;
-				//prevFrame.x = MouseStatus.nX;
-
-				//resize(prevOrigin8u + prevFrame.y*WIDTH + prevFrame.x, srcRoiSize, WIDTH, prevImage8u, dimRoiSize, dim);
-				//resize(prevOrigin8u + prevFrame.y*WIDTH + prevFrame.x, srcRoiSize, WIDTH, prevImage8u, dimRoiSize, dim);
-
-
-				wantedOrg.y = MouseStatus.nY;
-				wantedOrg.x = MouseStatus.nX;
-
-				//wanted.x = (MouseStatus.nX - frame.x)/scale;
-				//wanted.y = (MouseStatus.nY - frame.y)/scale;
-			}
-		}
-		
-		//if (wanted.y >dim - wantedSize) {
-		//	wanted.y = 10;
-		//	wanted.x = 40;
-		//}
 		
 		
 
 		//--- prepare current input ----------------
 		ippiFilterBox_8u_C1R((Ipp8u*)currImage8u, width, currBlur8u, width, dimRoiSize, { blurSize, blurSize }, { blurSize /2, blurSize /2 });
-		
-
-
 		//sobel(currImage8u, blurImage, width,  height);
-		//sobelCmplx(currImage8u, currImage_fcr, width, height);
+		sobelCmplx(currImage8u, currImage_fcr, width, height);
 
 		VS_SetData(CURR_BLUR, currBlur8u);
 
@@ -512,7 +492,9 @@ int main()
 			float diff = (float)currImage8u[i] - (float)currBlur8u[i];
 		//	float diff = blurImage[i];
 		//	//currImage_fc [i] = { diff,0 };
-			currImage_fcr[i] = { 0,diff };
+			//currImage_fcr[i] = { 0,diff };
+			currImage_fcr[i].re = diff ;
+			//currImage_fcr[i] = { diff,0};
 		//	currImage8s[i] = diff;// / 2;
 		}
 
@@ -523,16 +505,17 @@ int main()
 		VS_SetData(PREV_BLUR, prevBlur8u);
 		//ippiFilterBox_8u_C1R((Ipp8u*)prevImage8u, width, blurImage, width, s, { blurSize, blurSize }, { blurSize / 2, blurSize / 2 });
 		//sobel(prevImage8u, blurImage, width, height);
+		sobelCmplx(prevImage8u, prevImage_fcr, width, height);
 
 		for (int i = 0; i < size; i++) {
 			float diff = (float)prevImage8u[i] - (float)prevBlur8u[i];
 		//	prevImage_fc [i] = { diff, 0 };
-			prevImage_fcr[i] = { 0,diff};
+			//prevImage_fcr[i] = { 0,diff};
+			prevImage_fcr[i].re= diff;
 		//	prevImage8s[i] = diff;// / 2;
 		//	
 		}
 
-		//sobelCmplx(prevImage8u, prevImage_fcr, width, height);
 
 
 		VS_SetData(PREV_IMG_FC, prevImage_fcr);
@@ -689,6 +672,13 @@ int main()
 				if (diffBlur8u[caught.y*dim + caught.x] < blurThresh) {
 
 
+					caughtOrg.x = currFrame.x + caught.x*scale;
+					caughtOrg.y = currFrame.y + caught.y*scale;
+
+					VS_Rectangle(CURR_ORIGIN_IMG, caughtOrg.x, caughtOrg.y, caughtOrg.x + wantedSize * scale, caughtOrg.y + wantedSize * scale, VS_GREEN, VS_NULL_COLOR);
+					VS_Rectangle(CURR_IMG8, caught.x, caught.y, caught.x + wantedSize, caught.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
+
+
 					//wantedOrg.x = frame.x + wanted.x*scale;
 					//wantedOrg.y = frame.y + wanted.y*scale;
 					//caughtOrg.x = frame.x + caught.x*scale;
@@ -733,7 +723,8 @@ int main()
 		}
 		caught= caught0 ;
 		//Pos caughtNM;
-		VS_Rectangle(PREV_ORIGIN_IMG, currFrame.x , currFrame.y , currFrame.x + dim*scale, currFrame.y + dim*scale, VS_BLUE, VS_NULL_COLOR);
+		VS_Rectangle(PREV_ORIGIN_IMG, prevFrame.x , prevFrame.y , prevFrame.x + dim*scale, prevFrame.y + dim*scale, VS_BLUE, VS_NULL_COLOR);
+		VS_Rectangle(CURR_ORIGIN_IMG, currFrame.x , currFrame.y , currFrame.x + dim*scale, currFrame.y + dim*scale, VS_BLUE, VS_NULL_COLOR);
 		
 		//dtpRecv(dr, &caught, sizeof32(caught));
 		//dtpRecv(dr, &caughtNM, sizeof32(caught));
@@ -759,7 +750,7 @@ int main()
 		
 		//VS_Rectangle(IFFT_IMG, caught.x-1, caught.y-1, caught.x + wantedSize, caught.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
 		//VS_Rectangle(CURR_IMG_FC, caught.x-1, caught.y-1, caught.x + wantedSize, caught.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
-		//VS_Text("dx:%d dy:%d\r\n", caught.x- wanted.x, caught.y- wanted.y);
+		VS_Text("dx:%d dy:%d\r\n", caught.x- wanted.x, caught.y- wanted.y);
 
 		VS_Draw(VS_DRAW_ALL);
 	}
