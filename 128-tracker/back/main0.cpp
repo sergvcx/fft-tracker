@@ -90,7 +90,7 @@ __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm1_to_n
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm0_to_nm1_corr;
 
 __attribute__((section(".data.shmem0"))) int data_x86_to_nm1_cmd[16 * 16 ]; //sizeof32(Cmd_x86_to_nm1)
-__attribute__((section(".data.emi")))    int data_x86_to_nm1_img[1024 * 256 * 256 / 4];
+__attribute__((section(".data.emi")))    int data_x86_to_nm1_img[256 * 256 * 256 / 4];
 __attribute__((section(".data.emi")))    int data_nm1_to_x86_out[2 * DIM*DIM * 2]; // declared on nm1 
 __attribute__((section(".data.shmem0"))) int data_nm1_to_nm0_cmd[16 * sizeof(Cmd_nm1_to_nm0)];
 __attribute__((section(".data.imu6")))   int data_nm1_to_nm0_diff[2 * DIM*DIM];
@@ -260,12 +260,20 @@ int main()
 				printf("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff.head, ring_nm1_to_nm0_diff.tail);
 
 			nm32s* in = toLocal0(ring_nm1_to_nm0_diff.ptrTail());
+			//printf("---32s-\n");
+			//dump_32s("%d ", (int*)in, 16, 16, 128, 1);
 			nmppsConvert_32s32fcr(in, FFT0_fcr, DIM*DIM);
+			//printf("---32s-\n");
+			//dump_32s("%d ", (int*)in, 16, 16, 128, 1);
+			//printf("--32f--\n");
+			//dump_32f("%.0f ", (float*)FFT0_fcr, 16, 32, 256, 1);
+			
 			ring_nm1_to_nm0_diff.tail += DIM * DIM;
 			for (int i = 0; i < DIM; i++) {
 				nmppsFFT128Fwd_32fcr(FFT0_fcr + i * DIM, 1, tmpFFT_fcr + i, DIM, &specFwd);
 			}
 			for (int i = 0; i < DIM; i++) {
+
 				nmppsFFT128Fwd_32fcr(tmpFFT_fcr + i * DIM, 1, FFT0_fcr + i, DIM, &specFwd);
 			}
 		}
@@ -274,7 +282,11 @@ int main()
 				printf("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff.head, ring_nm1_to_nm0_diff.tail);
 
 			nm32s* in = toLocal0(ring_nm1_to_nm0_diff.ptrTail());
+			//printf("--32s--\n");
+			//dump_32s("%d ", (int*)in, 16, 16, 128, 1);
+			//printf("--32f--\n");
 			nmppsConvert_32s32fcr(in, FFT1_fcr, DIM*DIM );
+			//dump_32f("%.0f ",(float*) FFT1_fcr, 16, 32, 256, 1);
 			ring_nm1_to_nm0_diff.tail+=DIM*DIM;
 			for (int i = 0; i < DIM; i++) {
 				nmppsFFT128Fwd_32fcr(FFT1_fcr + i * DIM, 1, tmpFFT_fcr + i, DIM, &specFwd);
@@ -295,6 +307,25 @@ int main()
 				nmppsFFT128Inv_32fcr(FFT1_fcr + i * DIM, 1, tmpFFT_fcr + i, DIM, &specInv);
 			}
 			
+			//for (int i = 0; i < DIM; i++) {
+			//	for (int j = 0; j < DIM; j++) {
+			//		//if (max < productIFFT_fc[i*dim + j].re) {
+			//		//	max = productIFFT_fc[i*dim + j].re;
+			//		//float abs= 
+			//		float re = tmpFFT_fcr[i*dim + j].re;
+			//		float im = tmpFFT_fcr[i*dim + j].im;
+			//		float abs = re * re + im * im;
+			//
+			//		productAbs32f[i*dim + j] = abs;
+			//		temp32f[i*dim + j] = abs;
+			//
+			//		//if (max < productIFFT_fcr[i*dim + j].re) {
+			//		//	max = productIFFT_fcr[i*dim + j].re;
+			//
+			//	}
+			//}
+			//
+
 			//float max = 0;
 			int idx = nmblas_isamax(DIM*DIM * 2, (const float*)tmpFFT_fcr, 1);
 			caught.y = idx >> 8;

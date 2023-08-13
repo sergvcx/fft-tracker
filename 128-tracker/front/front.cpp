@@ -280,7 +280,7 @@ int main()
 	VS_CreateSlider("blurThresh", SLIDER_BLUR_THRESH, 1, 255, 1, 16);
 
 #define SLIDER_DEPTH_SEARCH 6
-	VS_CreateSlider("depth search", SLIDER_DEPTH_SEARCH, 1, 255, 1, 16);
+	VS_CreateSlider("depth search", SLIDER_DEPTH_SEARCH, 0, 255, 1, 1);
 
 #define SLIDER_SCALE 7
 	VS_CreateSlider("scale", SLIDER_SCALE, 0.1, 2, 0.01, 1);
@@ -376,8 +376,8 @@ int main()
 	//}
 
 
-	NmppPoint caughtOrg = {0,0};
-	NmppPoint wantedOrg = {0,0};
+	NmppPoint caughtOrg = { 32,32 };
+	NmppPoint wantedOrg = caughtOrg;
 	Cmd_x86_to_nm1 cmd = {0,0,0,0};
 
 	cmd.command = 0x64078086;
@@ -390,7 +390,7 @@ int main()
 	cmd.frmSize.height = DIM;
 	cmd.frmSize.width = DIM;
 
-	dtpSend(dwCmd, &cmd, sizeof32(cmd));
+	dtpSend(dwCmd, &cmd, sizeof32(cmd)); //Handshake
 
 	//int handshakeMsg[] = { 0,1,2,3,4,5,6,7};
 	//dtpSend(dwImg, handshakeMsg, sizeof32(handshakeMsg));
@@ -549,13 +549,20 @@ int main()
 //*************************************************************************************
 		
 		//---------------------------------
+		int frame = VS_GetSrcFrameNum();
 		dtpSend(dwImg, currImage8s, size / 4);
 		
 		cmd.command = DO_FFT0;
 		dtpSend(dwCmd, &cmd, sizeof32(cmd));
 		cmd.counter++;
 		cmd.frmIndex++;
-		
+		//printf("----\n");
+		//dump_32u("%x ", currImage8s, 4, 16, 128/4, 1);
+		//printf("----\n");
+		//dump_8s("%d ", currImage8s, 16, 16, 128, 1);
+		//printf("----\n");
+		//dump_32f("%.0f ", (float*)currImage_fcr, 16, 32, 256, 1);
+
 		//---------------------------------
 		dtpSend(dwImg, wantedImage8s, size / 4);
 		
@@ -563,7 +570,12 @@ int main()
 		dtpSend(dwCmd, &cmd, sizeof32(cmd));
 		cmd.counter++;
 		cmd.frmIndex++;
-
+		//dump_32u("%x ", wantedImage8s,4, 16, 128/4, 1);
+		//printf("----\n");
+		//dump_8s("%d ", wantedImage8s, 16, 16, 128, 1);
+		//printf("----\n");
+		//dump_32f("%.0f ", (float*)wantedImage_fcr, 16, 32, 256, 1);
+		//
 		//---------------------------------
 		cmd.command = DO_CORR;
 		dtpSend(dwCmd, &cmd, sizeof32(cmd));
@@ -574,16 +586,10 @@ int main()
 		// ----------forward fft ----------------
 		
 		NmppPoint caught0 = { 0,0 };
-		if (0) {
+		if (1) {
 			//st = ippiFFTFwd_CToC_32fc_C1R(currImage_fc, dim * 8, currFFT_fc, dim * 8, spec, 0);
 			//st = ippiFFTFwd_CToC_32fc_C1R(wantedImage_fc, dim * 8, wantedFFT_fc, dim * 8, spec, 0);
-
 			
-			//memset(currFFT_fc, 0, dim*dim * 8);
-
-			//spec128->dstStep = dim*2;
-			//spec128->dstStep =  dim*2;
-			//spec128->dstStep = 2;
 			for (int i = 0; i < dim; i++) {
 				nmppsFFT128Fwd_32fcr(currImage_fcr+ i * dim, 1, tmpFFT_fcr+i, dim, spec128);
 				//nmppsFFT128Fwd_32fcr(currImage_fcr, tmpFFT_fcr, spec128);
@@ -655,9 +661,11 @@ int main()
 					//if (max < productIFFT_fc[i*dim + j].re) {
 					//	max = productIFFT_fc[i*dim + j].re;
 					//float abs= 
-					float re = productIFFT_fcr[i*dim + j].re;
-					float im = productIFFT_fcr[i*dim + j].im;
-					float abs = re * re + im * im;
+					
+					//float re = productIFFT_fcr[i*dim + j].re;
+					//float im = productIFFT_fcr[i*dim + j].im;
+					//float abs = re * re + im * im;
+					float abs= productIFFT_fcr[i*dim + j].re;
 
 					productAbs32f[i*dim + j] = abs;
 					temp32f[i*dim + j] = abs;
@@ -742,11 +750,12 @@ int main()
 
 		}
 		caught= caught0 ;
-		//NmppPoint caughtNM;
+		NmppPoint caughtNM;
 		VS_Rectangle(PREV_ORIGIN_IMG, prevFrame.x , prevFrame.y , prevFrame.x + dim*scale, prevFrame.y + dim*scale, VS_BLUE, VS_NULL_COLOR);
 		VS_Rectangle(CURR_ORIGIN_IMG, currFrame.x , currFrame.y , currFrame.x + dim*scale, currFrame.y + dim*scale, VS_BLUE, VS_NULL_COLOR);
 		
-		dtpRecv(drOut, &caught, sizeof32(caught));
+		dtpRecv(drOut, &caughtNM, sizeof32(caughtNM));
+		
 		_ASSERTE(caught.x >= 0);
 		_ASSERTE(caught.y >= 0);
 		_ASSERTE(caught.x < DIM);
@@ -766,6 +775,11 @@ int main()
 		//wantedOrg.y = frame.y + wanted.y*scale;
 		caughtOrg.x = currFrame.x + caught.x*scale;
 		caughtOrg.y = currFrame.y + caught.y*scale;
+
+		NmppPoint caughtOrgNM;
+		caughtOrgNM.x = currFrame.x + caughtNM.x*scale;
+		caughtOrgNM.y = currFrame.y + caughtNM.y*scale;
+
 		_ASSERTE(caughtOrg.x >= 0);
 		_ASSERTE(caughtOrg.y >= 0);
 		_ASSERTE(caughtOrg.x < WIDTH);
@@ -773,6 +787,7 @@ int main()
 
 		VS_Rectangle(PREV_ORIGIN_IMG, wantedOrg.x , wantedOrg.y , wantedOrg.x + wantedSize * scale , wantedOrg.y + wantedSize * scale, VS_RED, VS_NULL_COLOR);
 		VS_Rectangle(CURR_ORIGIN_IMG, caughtOrg.x , caughtOrg.y , caughtOrg.x + wantedSize * scale,  caughtOrg.y + wantedSize * scale, VS_GREEN, VS_NULL_COLOR);
+		VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgNM.x , caughtOrgNM.y , caughtOrgNM.x + wantedSize * scale,  caughtOrgNM.y + wantedSize * scale, VS_YELLOW, VS_NULL_COLOR);
 		VS_Rectangle(PREV_IMG8, wanted.x, wanted.y, wanted.x + wantedSize, wanted.y + wantedSize, VS_RED, VS_NULL_COLOR);
 		VS_Rectangle(CURR_IMG8, caught.x, caught.y, caught.x + wantedSize, caught.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
 		
