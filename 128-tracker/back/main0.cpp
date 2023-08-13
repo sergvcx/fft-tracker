@@ -64,7 +64,7 @@ __attribute__((section(".data.imu0"))) nm32fcr invBuffer3[64];
 #define NM0_TO_NM1_BUFFER_SIZE ECHO		//4
 #define NM1_TO_NM0_BUFFER_SIZE SIZE	//5
 
-
+#define DIM 128
 
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_x86_to_nm0;
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_x86_to_nm1;
@@ -73,12 +73,55 @@ __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm1_to_x
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm0_to_nm1;
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm1_to_nm0;
 
+
+__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_x86_to_nm0;
+__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_x86_to_nm1;
+__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm0_to_x86;
+
+__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_cmd_x86_to_nm1;
+__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_img_x86_to_nm1;
+__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_cnv_nm1_to_x86;
+__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_cmd_nm1_to_nm0;
+__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_in_nm1_to_nm0;
+__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_out_nm0_to_nm1  ;
+
+__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm0_to_nm1;
+__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm1_to_nm0;
+
+
 //__attribute__((section(".data.shmem1"))) int x86_to_nm1_buffer[X86_TO_NM1_BUFFER_SIZE];
 __attribute__((section(".data.shmem0"))) int x86_to_nm0_buffer[X86_TO_NM0_BUFFER_SIZE];
 __attribute__((section(".data.shmem0"))) int nm0_to_x86_buffer[NM0_TO_X86_BUFFER_SIZE];
 __attribute__((section(".data.shmem0"))) int nm1_to_x86_buffer[NM1_TO_X86_BUFFER_SIZE];
 __attribute__((section(".data.shmem0"))) int nm0_to_nm1_buffer[NM0_TO_NM1_BUFFER_SIZE];
-//__attribute__((section(".data.imu7"))) int nm1_to_nm0_buffer[FULL_BANK];
+
+__attribute__((section(".data.shmem0"))) int data_cmd_x86_to_nm1[128 * sizeof32(Cmd_x86_to_nm1)];
+__attribute__((section(".data.shmem0"))) int data_img_x86_to_nm1[1024*256*256/4];
+__attribute__((section(".data.shmem0"))) int data_cnd_nm1_x86[4*DIM*DIM];
+
+
+__attribute__((section(".data.emi"))) int img_m1_to_nm0_buffer[FULL_BANK];
+
+
+
+#define DO_FFT_PREV 1
+#define DO_FFR_CURR 2
+#define DO_CONV 3
+
+
+struct {
+	unsigned cmdIndex;
+	unsigned cmdId;
+} Cmd_nm1_to_nm0;
+
+struct {
+	unsigned cmdIndex;
+	unsigned cmdId;
+	unsigned frmIndex;
+	unsigned frmAddress;
+	NmppSize frmSize;
+	NmppRect frmRoi;
+} Cmd_x86_to_nm1;
 
 
 //HalRingBufferData<int, 128 * 128 * 4> ring;
