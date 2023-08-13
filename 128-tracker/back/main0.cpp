@@ -147,13 +147,13 @@ extern "C" void DisableInterrupts_IMR_Low(int);
 #define DISABLE_SYS_TIMER()  DisableInterrupts_IMR_Low(1 << 10); *((int*)(0x40000800)) = 0;
 //? *((int*)(0x40000802)) = 1;
 
-void* toGlobal0(void* addr) {
+int* toGlobal0(void* addr) {
 	if ((unsigned)addr < 0x40000)
 		return (int*)addr + 0x40000;
 	return (int*)addr;
 }
-void* toLocal0(void* addr) {
-	if ((unsigned)addr >= 0x40000 && addr< 0x80000)
+int* toLocal0(void* addr) {
+	if ((unsigned)addr >= 0x40000 && (unsigned)addr< 0x80000)
 		return (int*)addr - 0x40000;
 	return (int*)addr;
 }
@@ -200,53 +200,17 @@ int main()
 	dtpSend(file_desc, ring, 6);
 	dtpClose(file_desc);
 
-//	ring_x86_to_nm0.init(X86_TO_NM0_BUFFER_SIZE);	ring_x86_to_nm0.data = x86_to_nm0_buffer; ring_x86_to_nm0.bufferId=0xBEEF0000;
-//	//ring_x86_to_nm1.init(X86_TO_NM1_BUFFER_SIZE);	ring_x86_to_nm1.data = x86_to_nm1_buffer+0x80; ring_x86_to_nm1.bufferId=0xBEEF0001;
-//	ring_nm0_to_x86.init(NM0_TO_X86_BUFFER_SIZE);	ring_nm0_to_x86.data = nm0_to_x86_buffer; ring_nm0_to_x86.bufferId=0xBEEF0002;
-//	//ring_nm1_to_x86.init(NM1_TO_X86_BUFFER_SIZE);	ring_nm1_to_x86.data = nm1_to_x86_buffer; ring_nm1_to_x86.bufferId=0xBEEF0003;
-//	ring_nm0_to_nm1.init(NM0_TO_NM1_BUFFER_SIZE);	ring_nm0_to_nm1.data = nm0_to_nm1_buffer; ring_nm0_to_nm1.bufferId=0xBEEF0004;
-//	ring_nm1_to_nm0.init(sizeof(nm1_to_nm0_buffer));ring_nm1_to_nm0.data = (int*)nm1_to_nm0_buffer+0x40000; ring_nm1_to_nm0.bufferId=0xC1C0B00F;
 
-	//printf("input: %p, output: %p\n", &ring_x86_to_nm1, &ring_X86_output);
-	//printf("host2nm1_buffer: %p, data_X86_output: %p\n", host2nm1_buffer, data_X86_output);
-	//int offset = 0x40000 + 0x40000 * ncl_getProcessorNo();
-
-	
-	
 	for (int i = 0; i < 6; i++)
-		printf("%d: ring:%08x data:%08x size:%8d id:%08x\n", i, ring[i], ring[i]->data, ring[i]->size, ring[i]->bufferId);
-
-
-	//int ring_x86_to_nm1_ = (int)&ring_x86_to_nm1;
-	//int ring_nm1_to_nm0_a = (int)&ring_nm1_to_host;
-	//if (ring_input_addr < 0x80000) ring_input_addr += offset;
-	//if (ring_output_addr < 0x80000) ring_output_addr += offset;
-	//printf("ring_input_addr %p, ring_output_addr %p\n", ring_input_addr, ring_output_addr);
-	//dtpSend(file_desc, &ring_input_addr, 1);
-	//dtpSend(file_desc, &ring_output_addr, 1);
-	
-
-	
-	// -------------------------------------------------------------
+		printf("%d: ring:%08x data:%08x size:%8d id:%08x\n", i, (int)ring[i], (int)ring[i]->data, ring[i]->size, ring[i]->bufferId);
 
 
 	//--------------pc-nm0----------------
 
 	int rbCmd     = dtpOpenRingbuffer(&ring_nm1_to_nm0_cmd,  memCopyPush, memCopyPop);
 	//int rbDiff    = dtpOpenRingbuffer(&ring_nm1_to_nm0_diff, memCopyPush, memCopyPop);
-	int rbCorr    = dtpOpenRingbuffer(&ring_nm0_to_nm1_corr, memCopyPush, memCopyPop);
+	//int rbCorr    = dtpOpenRingbuffer(&ring_nm0_to_nm1_corr, memCopyPush, memCopyPop);
 	int rbTo86    = dtpOpenRingbuffer(&ring_nm1_to_x86_out, memCopyPush, memCopyPop);
-
-	
-
-
-	int counter = 0;
-
-	//int dim = 128;
-	//int size = dim * dim;
-	//int width = dim;
-	//int height = dim;
-
 
 
 	//---------- fwd spec ----------
@@ -266,19 +230,10 @@ int main()
 	specInv.Buffs[3] = invBuffer3;
 	nmppsFFT128InvInit_32fcr(&specInv); // инициализация БПФ
 
-	//---------------------
 
-
-	int wantedSize = 10;
-	//int wantedY = 10;
-	//int wantedX = 10;
-	caught.x = 10;
-	caught.y = 11;
 	
 	
-	//nm32fcr* currImage_fcr   = productIFFT_fcr;
-	//nm32fcr* wantedImage_fcr = ringBufferHi;
-	clock_t t0, t1;
+	//clock_t t0, t1;
 
 
 	
@@ -296,25 +251,15 @@ int main()
 	
 	while (1){
 		
-		//dtpRecv(dr, currImage_fcr, size * 2);
-		//printf("--- first recv ---- \n");
-
-		//printf("head =%d tail=%d \n",ring.head, ring.tail);
-		//printf("<<< ... 1:\n");
-		t1 = clock();
-		//printf("time= %ld\n", t1 - t0);
-
+		//t1 = clock();
 		
 		dtpRecv(rbCmd,&cmd, sizeof32(cmd));
 		printf("in: %d 0x%x\n", cmd.counter, cmd.command);
-		//printf("<<<]\n:");
-		//dtpRecv(rbIn, productFFT_fcr, size);
 		if (cmd.command == DO_FFT0) {
 			while (ring_nm1_to_nm0_diff.isEmpty())
 				printf("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff.head, ring_nm1_to_nm0_diff.tail);
 
 			nm32s* in = toLocal0(ring_nm1_to_nm0_diff.ptrTail());
-			//printf("tailptr: %x\n", in);
 			nmppsConvert_32s32fcr(in, FFT0_fcr, DIM*DIM);
 			ring_nm1_to_nm0_diff.tail += DIM * DIM;
 			for (int i = 0; i < DIM; i++) {
@@ -350,7 +295,7 @@ int main()
 				nmppsFFT128Inv_32fcr(FFT1_fcr + i * DIM, 1, tmpFFT_fcr + i, DIM, &specInv);
 			}
 			
-			float max = 0;
+			//float max = 0;
 			int idx = nmblas_isamax(DIM*DIM * 2, (const float*)tmpFFT_fcr, 1);
 			caught.y = idx >> 8;
 			caught.x = (idx % 256) >> 1;
@@ -359,97 +304,9 @@ int main()
 			printf("out:\n");
 		}
 		else {
-			//printf("%d command:%d\n", cmd.counter, cmd.command);
+			printf("%d command:%d\n", cmd.counter, cmd.command);
 		}
 
-
-		//printf("head =%d tail=%d \n", ring.head, ring.tail);
-		//dtpAsyncRecv(dr, &task);
-		//printf("%d %f\n",counter,  currImage_fcr[3].re);
-		//counter++;
-		//while ( dtpAsyncStatus(dr, &task)!=DTP_ST_DONE);
-		//for (int i = 0; i < 128; i++) {
-		//	printf("%d %f %f\n",i, currImage_fcr[i].re, currImage_fcr[i].im);
-		//}
-		//printf("curr:\n");
-		//dump_32f("%.0f ", (float*)currImage_fcr, 8, 16, dim*2, 1);
-
-		//dtpRecv(dr, wantedImage_fcr, size * 2);
-		//dtpSend(dw, &caught, sizeof32(caught));
-		//printf("<<< ... 2:\n");
-		
-		//printf("<<<]\n:");
-		//nmppsConvert_32s32fcr((nm32s*)productFFT_fcr, wantedImage_fcr, size);
-		//printf("--- second recv ----\n");
-		
-		//printf("head =%d tail=%d \n", ring.head, ring.tail);
-		
-		
-		//dtpSend(dw, &caught, sizeof32(caught));
-		//printf("--- send done----\n");
-	//}
-	//{
-	
-
-		
-
-		//---------------------------------
-		//dtpRecv(rbIn, wantedImage_fcr, size * 2);
-
-		//printf("wanted:\n");
-		//dump_32f("%.0f ", (float*)wantedImage_fcr, 8, 16, dim * 2, 1);
-
-
-		//for (int i = 0; i < dim; i++) {
-		//	nmppsFFT128Fwd_32fcr(wantedImage_fcr + i * dim, 1,  tmpFFT_fcr + i, dim, &specFwd);
-		//}
-		//for (int i = 0; i < dim; i++) {
-		//	nmppsFFT128Fwd_32fcr(tmpFFT_fcr + i * dim, 1,  wantedFFT_fcr + i, dim,  &specFwd);
-		//}
-		
-
-		//printf("currFFT_fcr:\n");
-		//dump_32f("%.1f ", (float*)currFFT_fcr, 8, 16, dim * 2, 1);
-		//
-		//
-		//printf("wantedFFT_fcr:\n");
-		//dump_32f("%.1f ", (float*)wantedFFT_fcr, 8, 16, dim * 2, 1);
-
-		//---------- mul -------- 
-		
-	
-
-		
-	
-		
-		//float max = 0;
-		//
-		//int idx=nmblas_isamax(size*2,(const float*)productIFFT_fcr,1);
-		//
-		//caught.y = idx>>8;
-		//caught.x = (idx%256)>>1;
-
-		/*
-		for (int i = 0; i < dim -  wantedSize ; i++) {
-			for (int j = 0; j < dim -  wantedSize; j++) {
-				if (max < productIFFT_fcr[i*dim + j].re) {
-					max = productIFFT_fcr[i*dim + j].re;
-					caught.x = j;
-					caught.y = i;
-				}
-			}
-		}
-		*/
-		//printf("productFFT_fcr:\n");
-		//dump_32f("%.1f ", (float*)productFFT_fcr, 8, 16, dim * 2, 1);
-		//
-		//
-		//printf("productIFFT_fcr:\n");
-		//dump_32f("%.1f ", (float*)productIFFT_fcr, 8, 16, dim * 2, 1);
-
-
-		//swap((void**)&currImage_fcr, (void**)&wantedImage_fcr);
-		t0 = clock();
-		//dtpSend(rbOut, &caught, sizeof32(caught));
+		//t0 = clock();
 	}
 }

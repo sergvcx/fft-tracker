@@ -18,26 +18,8 @@ const int ECHO = 128;
 __attribute__((section(".data.imu3"))) 	int ringBufferLo[32*1024];
 __attribute__((section(".data.imu1"))) 	nm32fcr ringBufferHi[DIM*DIM];
 
-//#define X86_TO_NM0_BUFFER_SIZE ECHO		//0
-#define X86_TO_NM1_BUFFER_SIZE SIZE*2	//1
-//#define NM0_TO_X86_BUFFER_SIZE ECHO		//2
-//#define NM1_TO_X86_BUFFER_SIZE ECHO		//3
-//#define NM0_TO_NM1_BUFFER_SIZE ECHO		//4
-//#define NM1_TO_NM0_BUFFER_SIZE SIZE*2	//5
-
 #define FULL_BANK 32*1024 // 128kB
-//__attribute__((section(".data.shmem1"))) int x86_to_nm1_buffer[X86_TO_NM1_BUFFER_SIZE];
-//__attribute__((section(".data.shmem0"))) int x86_to_nm0_buffer[X86_TO_NM0_BUFFER_SIZE];
-//__attribute__((section(".data.shmem0"))) int nm0_to_x86_buffer[NM0_TO_X86_BUFFER_SIZE];
-//__attribute__((section(".data.shmem0"))) int nm1_to_x86_buffer[NM1_TO_X86_BUFFER_SIZE];
-//__attribute__((section(".data.shmem0"))) int nm0_to_nm1_buffer[NM0_TO_NM1_BUFFER_SIZE];
-//__attribute__((section(".data.shmem0"))) int nm1_to_nm0_buffer[NM1_TO_NM0_BUFFER_SIZE];
-
 //__attribute__((section(".data.imu3"))) int x86_to_nm1_buffer[FULL_BANK];
-
-// ok
-// memcp pop  
-// opy push 
 
 static void* memCopyPop(const void *src, void *dst, unsigned int size32) {
 	//if ((int)src & 1 || (int)dst & 1 || size32 & 1)
@@ -48,19 +30,9 @@ static void* memCopyPop(const void *src, void *dst, unsigned int size32) {
 	else {
 		//memcpy(dst, src, size32 * sizeof(int));
 		//nmppsCopy_32s((nm32s*)src,(nm32s*) dst, size32);
-		//halDmaStart(src, dst, size32);
-		//while (!halDmaIsCompleted());
+		halDmaStart(src, dst, size32);
+		while (!halDmaIsCompleted());
 	}
-		//nmppsMulC_32s(src, 1, dst, size32);
-	//for(int i=0; )
-	//printf("dma start \n");
-	
-	//printf("dma end \n");
-	////halSleep(1000);
-	//
-	
-	//printf("dma completed \n");
-	//dump_32f("%s ", dst, 128, 16,16,0);
 	return 0;
 }
 static void* memCopyPush(const void *src, void *dst, unsigned int size32) {
@@ -89,15 +61,15 @@ int main(){
 	
 	HalRingBufferData<int, 2>* ring_x86_to_nm1_cmd = ring[0];
 	HalRingBufferData<int, 2>* ring_x86_to_nm1_img = ring[1];
-	HalRingBufferData<int, 2>* ring_nm1_to_x86_out = ring[2];
+	//HalRingBufferData<int, 2>* ring_nm1_to_x86_out = ring[2];
 	HalRingBufferData<int, 2>* ring_nm1_to_nm0_cmd = ring[3];
 	HalRingBufferData<int, 2>* ring_nm1_to_nm0_diff= ring[4];
-	HalRingBufferData<int, 2>* ring_nm0_to_nm1_corr= ring[5];
+	//HalRingBufferData<int, 2>* ring_nm0_to_nm1_corr= ring[5];
 
-	ring_x86_to_nm1_img->data = (int*)ringBufferHi;
-	ring_x86_to_nm1_img->init(32 * 1024);
+	//ring_x86_to_nm1_img->data = (int*)ringBufferHi;
+	//ring_x86_to_nm1_img->init(32 * 1024);
 	for (int i = 0; i < 6; i++)
-		printf("%d: ring:%08x data:%08x size:%8d id:%08x\n", i, ring[i], ring[i]->data, ring[i]->size, ring[i]->bufferId);
+		printf("%d: ring:%08x data:%08x size:%8d id:%08x\n", i, (int)ring[i], (int)ring[i]->data, ring[i]->size, ring[i]->bufferId);
 	
 	halDmaInit();
 	//halEnbExtInt();
@@ -110,16 +82,8 @@ int main(){
 	
 	int rbCmdToNm0=dtpOpenRingbufferDefault(ring_nm1_to_nm0_cmd);
 	
-	//int rbImg=dtpOpenRingbuffer(ring_x86_to_nm1_img, memCopyPush, memCopyPush);
-	int rbImg = dtpOpenRingbufferDefault(ring_x86_to_nm1_img);//, memCopyPush, memCopyPush);
+	int rbImg=dtpOpenRingbuffer(ring_x86_to_nm1_img, memCopyPush, memCopyPop);
 	
-	//int rbIn=dtpOpenRingbuffer(ring_x86_to_nm1, nmppsCopy_32s, nmppsCopy_32s);
-
-	//int rbIn  = dtpOpenRingbufferDefault(ring_addr[1]);
-	//int rbOut = dtpOpenRingbuffer(ring_nm1_to_nm0, memCopyPush, memCopyPop);
-
-	//int rbOut = dtpOpenRingbufferDefault(ring_nm1_to_nm0);
-
 	Cmd_x86_to_nm1 cmdIn;
 	Cmd_nm1_to_nm0 cmdOut = {0,0};
 
