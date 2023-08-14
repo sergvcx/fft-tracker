@@ -236,54 +236,57 @@ int main(){
 				printf("ring_x86_to_nm1_img: head:%d tail:%d\n", ring_x86_to_nm1_img->head, ring_x86_to_nm1_img->tail);
 			}
 			int *roi = ring_x86_to_nm1_img->data +cmdIn.frmIndex*imgSize32 + cmdIn.frmRoi.y*imgDim.width / 4 + cmdIn.frmRoi.x / 4;
-			//halDma2D_Start(roi, ringBufferLo, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM/4);
-			//while (!halDmaIsCompleted());
+			nm8s* blurRoi8s = (nm8s*)ringBufferLo;
+			if (cmdIn.command == DO_FFT1)
+				nmppsSet_8s(0, blurRoi8s, DIM*DIM);
+			halDma2D_Start(roi, blurRoi8s, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM/4);
+			while (!halDmaIsCompleted());
 			int *tail=ring_x86_to_nm1_img->ptrTail();
 			//memcpy(ringBufferLo, roi, DIM*DIM / 4);
 			//printf("%x %x %d\n", roi, tail, cmdIn.frmIndex);
 			
-			dtpRecv(rbImg, ringBufferLo, DIM*DIM/4);
+			//dtpRecv(rbImg, ringBufferLo, DIM*DIM/4);
 			printf("in: recv ok\n");
 
 			//ring_x86_to_nm1_img->tail+=DIM*DIM/4;
-			nm8u* img8u= (nm8u*)ringBufferLo;
-			nm8s* img8s= (nm8s*)ringBufferHi;
-			nm32s* blurImage32s = ringBufferLo;
-		if (cmdIn.command== DO_FFT0)
-			vsSaveImage("fft0_in8u.img", img8u, DIM, DIM, VS_RGB8_8);
-		else 
-			vsSaveImage("fft1_in8u.img", img8u, DIM, DIM, VS_RGB8_8);
-			//nmppsSet_8u(0, img8u,DIM*DIM);
-			//---------------------------------------
-			nmppsSubC_8s((nm8s*)img8u, 127, img8s, DIM*DIM);
-		if (cmdIn.command == DO_FFT0)
-			vsSaveImage("fft0_in8s.img", img8s, DIM, DIM, VS_RGB8_8);
-		else	
-			vsSaveImage("fft1_in8s.img", img8s, DIM, DIM, VS_RGB8_8);
-			nmppiFilter_8s32s(img8s, blurImage32s, DIM, DIM, blurKernel);
+			//nm8u* img8u= (nm8u*)ringBufferLo;
+			//nm8s* img8s= (nm8s*)ringBufferLo;
 			
-			//nmppsConvert_8s32s(img8s, blurImage32s, DIM*DIM);
-
-			//dump_32s("%d ", blurImage32s, DIM, DIM,DIM, 0);
-
-		if (cmdIn.command == DO_FFT0)
-			vsSaveImage("fft0_filter32s.img", blurImage32s, DIM, DIM, VS_RGB8_32);
-		else
-			vsSaveImage("fft1_filter32s.img", blurImage32s, DIM, DIM, VS_RGB8_32);
-
+		//if (cmdIn.command== DO_FFT0)
+		//	vsSaveImage("fft0_in8u.img", img8u, DIM, DIM, VS_RGB8_8);
+		//else 
+		//	vsSaveImage("fft1_in8u.img", img8u, DIM, DIM, VS_RGB8_8);
+		//	//nmppsSet_8u(0, img8u,DIM*DIM);
+		//	//---------------------------------------
+		//	nmppsSubC_8s((nm8s*)img8u, 127, img8s, DIM*DIM);
+		//if (cmdIn.command == DO_FFT0)
+		//	vsSaveImage("fft0_in8s.img", img8s, DIM, DIM, VS_RGB8_8);
+		//else	
+		//	vsSaveImage("fft1_in8s.img", img8s, DIM, DIM, VS_RGB8_8);
+		//	nmppiFilter_8s32s(img8s, blurImage32s, DIM, DIM, blurKernel);
+		//	
+		//	//nmppsConvert_8s32s(img8s, blurImage32s, DIM*DIM);
+		//
+		//	//dump_32s("%d ", blurImage32s, DIM, DIM,DIM, 0);
+		//
+		//if (cmdIn.command == DO_FFT0)
+		//	vsSaveImage("fft0_filter32s.img", blurImage32s, DIM, DIM, VS_RGB8_32);
+		//else
+		//	vsSaveImage("fft1_filter32s.img", blurImage32s, DIM, DIM, VS_RGB8_32);
+		//
 			
-			nm32s* toNM0= ring_nm1_to_nm0_diff->ptrHead();
+			nm32s* blurRoi32s = ring_nm1_to_nm0_diff->ptrHead();
 			
 			while (ring_nm1_to_nm0_diff->isFull()) 
 				printf("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff->head, ring_nm1_to_nm0_diff->tail);
 
-
-			nmppsRShiftC_32s(blurImage32s, 7, toNM0, DIM*DIM);
+			nmppsConvert_8s32s(blurRoi8s, blurRoi32s, DIM*DIM);
+			//nmppsRShiftC_32s(blurImage32s, 7, toNM0, DIM*DIM);
 
 		if (cmdIn.command == DO_FFT0)
-			vsSaveImage("fft0_norm32s.img", toNM0, DIM, DIM, VS_RGB8_32);
+			vsSaveImage("fft0_in32s.img", blurRoi32s, DIM, DIM, VS_RGB8_32);
 		else
-			vsSaveImage("fft1_norm32s.img", toNM0, DIM, DIM, VS_RGB8_32);
+			vsSaveImage("fft1_in32s.img", blurRoi32s, DIM, DIM, VS_RGB8_32);
 
 
 			//nmppsConvert_8s32s((nm8s*)ringBufferLo, (nm32s*)ring_nm1_to_nm0_diff->ptrHead(), DIM*DIM);
