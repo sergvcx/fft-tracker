@@ -43,6 +43,7 @@ static void* memCopyPush(const void *src, void *dst, unsigned int size32) {
 }
 
 
+	int blurWeights[16 * 16];
 
 #define FILE "../exchange.bin"
 int main(){
@@ -82,6 +83,19 @@ int main(){
 	int rbCmdToNm0=dtpOpenRingbufferDefault(ring_nm1_to_nm0_cmd);
 	
 	int rbImg=dtpOpenRingbuffer(ring_x86_to_nm1_img, memCopyPush, memCopyPop);
+	
+
+
+	for (int i = 0; i < 256; i++)
+		blurWeights[i] = -1;
+	int blurSize = 15;
+
+	blurWeights[blurSize*blurSize / 2] = blurSize * blurSize - 1;
+	int blurKernelSize = nmppiGetFilterKernelSize32_8s32s(blurSize, blurSize);
+	nm64s* blurKernel = (nm64s*)nmppsMalloc_32s(blurKernelSize);
+	nmppiSetFilter_8s32s(blurWeights, blurSize, blurSize, 256, blurKernel);
+
+
 	
 	
 	cmdOut.command = 0x6407600D;
@@ -143,7 +157,16 @@ int main(){
 			while (ring_nm1_to_nm0_diff->isFull()) {
 				printf("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff->head, ring_nm1_to_nm0_diff->tail);
 			}
-			nmppsConvert_8s32s((nm8s*)ringBufferLo, (nm32s*)ring_nm1_to_nm0_diff->ptrHead(), DIM*DIM);
+			nm8u* img8u= (nm8u*)ringBufferLo;
+			nm8s* img8s= (nm8s*)ringBufferHi;
+			nm32s* blurImage32s = ringBufferLo;
+			nmppsSubC_8s((nm8s*)img8u, 127, img8s, DIM*DIM);
+			nmppiFilter_8s32s(img8s, blurImage32s, 256, 256, blurKernel);
+			nm32s* toNM0= ring_nm1_to_nm0_diff->ptrHead();
+			nmppsRShiftC_32s(blurImage32s, 7, toNM0, DIM*DIM);
+
+
+			//nmppsConvert_8s32s((nm8s*)ringBufferLo, (nm32s*)ring_nm1_to_nm0_diff->ptrHead(), DIM*DIM);
 			//dump_8u("%d ", ringBufferLo, 16, 16, 128, 1);
 			//printf("--8s--\n");
 			//dump_8s("%d ", ringBufferLo, 16, 16, 128, 1);
