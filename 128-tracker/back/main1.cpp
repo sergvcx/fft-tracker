@@ -8,12 +8,14 @@
 #include "string.h"
 #include "dumpx.h"
 #include "tracker.h"
+#include "nmassert.h"
 
 Cmd_x86_to_nm1 cmdIn;
 Cmd_nm1_to_nm0 cmdOut = { 0,0 };
 
-__attribute__((section(".data.imu3"))) 	int ringBufferLo[32*1024];
-__attribute__((section(".data.imu1"))) 	nm32fcr ringBufferHi[DIM*DIM];
+__attribute__((section(".data.imu3"))) 	int ringBufferLo[DIM*DIM*2];
+__attribute__((section(".data.imu1"))) 	int ringBufferHi[DIM*DIM*2];
+__attribute__((section(".data.imu2"))) 	int ringBufferHi2[DIM*DIM* 2];
 
 #define FULL_BANK 32*1024 // 128kB
 //__attribute__((section(".data.imu3"))) int x86_to_nm1_buffer[FULL_BANK];
@@ -42,12 +44,101 @@ static void* memCopyPush(const void *src, void *dst, unsigned int size32) {
 	return 0;
 }
 
+//extern "C" {
+//void halSleep(int);
 
-	int blurWeights[16 * 16];
+	//}
+//}
+
+
+#define VS_RGB1 1
+#define VS_RGB4 2
+#define VS_RGB8 3
+#define VS_RGB16 4
+#define VS_RGB24 5
+#define VS_RGB32 6
+#define VS_RGB8_8 7
+#define VS_RGB8_16 8
+#define VS_RGB8_32 9
+#define VS_RGB32F 10
+#define VS_RGB32FC 11
+
+void	vsSaveImage(char* filename, void* data, int width, int height, int type) {
+	
+	int* data32 = (int*)data;
+	FILE* f = fopen(filename,"wb");
+	int size= width * height;
+	int size32=0;
+	switch (type) {
+	case VS_RGB1 :
+		size32 = size/32; break;
+	case VS_RGB4:
+		size32 = size/8; break;
+	case VS_RGB8_8:
+	case VS_RGB8:
+		size32 = size/4; break;
+	case VS_RGB16 :
+	case VS_RGB8_16:
+		size32 = size/2; break;
+	case VS_RGB24 :
+		size32 = size*3/4; break;
+	case VS_RGB32:
+	case VS_RGB8_32:
+	case VS_RGB32F:
+		size32 = size; break;
+	case VS_RGB32FC:
+		size32 = size*2; break;
+	}
+	if (f) {
+		int id=0x00006407;
+		fwrite(&id, 1, 1, f);
+		fwrite(&type, 1, 1, f);
+		fwrite(&width, 1, 1, f);
+		fwrite(&height, 1, 1, f);
+		//fwrite(data, 1, size32, f);
+
+		int block32 = 4*1024;
+		if (1) while (size32) {
+			size_t rsize;
+			if (size32 < block32) {
+				rsize = fwrite(data32,  sizeof(int),size32, f);
+				size32 -= size32;
+				
+			}
+			else {
+				rsize = fwrite(data32,  sizeof(int), block32, f);
+				size32 -= block32;
+				data32 += block32;
+			}
+		}
+		fclose(f);
+	}
+}
+void	vsReadImage(char* filename, void* data, int* width, int* height, int* type) {
+	FILE* f = fopen(filename, "wb");
+	
+	if (f) {
+		
+		fseek(f, 0, SEEK_END);
+		int size = ftell(f);
+		fseek(f, 0, SEEK_SET);
+		int id;// = 0x00006407;
+		fread(&id, 1, 1, f);
+		fread(&type, 1, 1, f);
+		fread(&width, 1, 1, f);
+		fread(&height, 1, 1, f);
+		//int size = *width * height;
+
+
+		fread(data, 1, size - 16, f);
+		fclose(f);
+	}
+}
 
 #define FILE "../exchange.bin"
+int blurWeights[16 * 16];
 int main(){
-	
+	halSleep(100);
 	
 	printf("nmc1 started\n");
 	int file_desc = 0;
@@ -93,7 +184,8 @@ int main(){
 	blurWeights[blurSize*blurSize / 2] = blurSize * blurSize - 1;
 	int blurKernelSize = nmppiGetFilterKernelSize32_8s32s(blurSize, blurSize);
 	nm64s* blurKernel = (nm64s*)nmppsMalloc_32s(blurKernelSize);
-	nmppiSetFilter_8s32s(blurWeights, blurSize, blurSize, 256, blurKernel);
+	NMASSERT(blurKernel);
+	nmppiSetFilter_8s32s(blurWeights, blurSize, blurSize, DIM, blurKernel);
 
 
 	
@@ -107,7 +199,7 @@ int main(){
 	if (cmdIn.command == 0x64078086)
 		printf("Handshake ok. Working ... \n");
 	else {
-		printf("Handshake error %d\n", cmdIn.command);
+		printf("Handshake error %x\n", cmdIn.command);
 		return -1;
 	}
 	
@@ -130,7 +222,7 @@ int main(){
 	printf("Starting nm1 ... \n");
 
 
-
+	
 
 
 	while (1) {
@@ -151,19 +243,47 @@ int main(){
 			//printf("%x %x %d\n", roi, tail, cmdIn.frmIndex);
 			
 			dtpRecv(rbImg, ringBufferLo, DIM*DIM/4);
+			printf("in: recv ok\n");
 
 			//ring_x86_to_nm1_img->tail+=DIM*DIM/4;
-			printf("in: recv ok\n");
-			while (ring_nm1_to_nm0_diff->isFull()) {
-				printf("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff->head, ring_nm1_to_nm0_diff->tail);
-			}
 			nm8u* img8u= (nm8u*)ringBufferLo;
 			nm8s* img8s= (nm8s*)ringBufferHi;
 			nm32s* blurImage32s = ringBufferLo;
+		if (cmdIn.command== DO_FFT0)
+			vsSaveImage("fft0_in8u.img", img8u, DIM, DIM, VS_RGB8_8);
+		else 
+			vsSaveImage("fft1_in8u.img", img8u, DIM, DIM, VS_RGB8_8);
+			//nmppsSet_8u(0, img8u,DIM*DIM);
+			//---------------------------------------
 			nmppsSubC_8s((nm8s*)img8u, 127, img8s, DIM*DIM);
-			nmppiFilter_8s32s(img8s, blurImage32s, 256, 256, blurKernel);
+		if (cmdIn.command == DO_FFT0)
+			vsSaveImage("fft0_in8s.img", img8s, DIM, DIM, VS_RGB8_8);
+		else	
+			vsSaveImage("fft1_in8s.img", img8s, DIM, DIM, VS_RGB8_8);
+			nmppiFilter_8s32s(img8s, blurImage32s, DIM, DIM, blurKernel);
+			
+			//nmppsConvert_8s32s(img8s, blurImage32s, DIM*DIM);
+
+			//dump_32s("%d ", blurImage32s, DIM, DIM,DIM, 0);
+
+		if (cmdIn.command == DO_FFT0)
+			vsSaveImage("fft0_filter32s.img", blurImage32s, DIM, DIM, VS_RGB8_32);
+		else
+			vsSaveImage("fft1_filter32s.img", blurImage32s, DIM, DIM, VS_RGB8_32);
+
+			
 			nm32s* toNM0= ring_nm1_to_nm0_diff->ptrHead();
+			
+			while (ring_nm1_to_nm0_diff->isFull()) 
+				printf("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff->head, ring_nm1_to_nm0_diff->tail);
+
+
 			nmppsRShiftC_32s(blurImage32s, 7, toNM0, DIM*DIM);
+
+		if (cmdIn.command == DO_FFT0)
+			vsSaveImage("fft0_norm32s.img", toNM0, DIM, DIM, VS_RGB8_32);
+		else
+			vsSaveImage("fft1_norm32s.img", toNM0, DIM, DIM, VS_RGB8_32);
 
 
 			//nmppsConvert_8s32s((nm8s*)ringBufferLo, (nm32s*)ring_nm1_to_nm0_diff->ptrHead(), DIM*DIM);
@@ -204,6 +324,6 @@ int main(){
 	}
 
 	
-
+	printf("---------\n");
     return 0;
 }

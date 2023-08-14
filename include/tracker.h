@@ -35,6 +35,8 @@
 #define DO_FFT0 0xFFD0
 #define DO_FFT1 0xFFD1
 #define DO_CORR 0xC077
+#define DO_BLUR 0xB100
+#define DO_FFT  0x0FFD
 #define DIM 128
 
 

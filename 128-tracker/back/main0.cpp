@@ -22,6 +22,11 @@ void swap(void** ptr0, void** ptr1) {
 	*ptr0 = tmp;
 }
 
+extern "C" {
+	void halSleep(int) {
+
+	}
+}
 
 
 NmppPoint caught;
@@ -241,9 +246,9 @@ int main()
 	printf("Waiting handshake ... \n");
 	dtpRecv(rbCmd, &cmd, sizeof32(cmd));
 	if (cmd.command == 0x6407600D)
-		printf("Handshake ok. Working ... \n");
+		printf("Handshake with nm1 - ok. Working ... \n");
 	else {
-		printf("Handshake error %d\n",cmd.command);
+		printf("Handshake with nm1 - error %d\n",cmd.command);
 		return -1;
 	}
 	
