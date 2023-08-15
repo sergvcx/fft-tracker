@@ -9,8 +9,8 @@ TARGETD  = test1d.abs
 
 CC       = nmc-g++
 AS       = nmc-gcc
-CXXFLAGS =  -O2 -Wall -mnmc4-fixed -g -std=c99 -fpermissive
-CXXFLAGSD=  -O0 -Wall -mnmc4-fixed -g -std=c99 -fpermissive
+CXXFLAGS =  -O2 -Wall -mnmc4-fixed -g  -fpermissive
+CXXFLAGSD=  -O0 -Wall -mnmc4-fixed -g  -fpermissive
 LIBS     =  -lhal_mc12101  -lnm6407int -lnmpp-nm6407i -lm   -ldtp-nm -lhal_mc12101 -ldtp-nm -lhal_mc12101 -Wl,--whole-archive -lnm6407_io_nmc -lmc12101load_nm -Wl,--no-whole-archive 
 LIBSD    =  -lhal_mc12101 -lnm6407int -lnmpp-nm6407i -lm    -ldtp-nm -lhal_mc12101 -ldtp-nm -lhal_mc12101 -Wl,--whole-archive -lnm6407_io_nmc -lmc12101load_nm -lmc12101_stub_nmc4_fixed -Wl,--no-whole-archive 
 LDFLAGS  = -Wl,-Map=test1.map  -Wl,-Tmc12101-nmpu1.lds

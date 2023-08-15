@@ -13,12 +13,15 @@
 
 Cmd_x86_to_nm1 cmdIn;
 Cmd_nm1_to_nm0 cmdOut = { 0,0 };
+ 
 
 __attribute__((section(".data.imu3"))) 	int ringBufferLo[DIM*DIM*2];
 __attribute__((section(".data.imu1"))) 	int ringBufferHi[DIM*DIM*2];
 __attribute__((section(".data.imu2"))) 	int ringBufferHi2[DIM*DIM* 2];
 
 #define FULL_BANK 32*1024 // 128kB
+#define PRINT 
+//printf
 //__attribute__((section(".data.imu3"))) int x86_to_nm1_buffer[FULL_BANK];
 
 
@@ -51,6 +54,9 @@ static void* memCopyPush(const void *src, void *dst, unsigned int size32) {
 	//}
 //}
 
+#define VS_SAVE_IMAGE 
+//vsSaveImage
+#define PRITN printf
 
 #define FILE "../exchange.bin"
 int blurWeights[16 * 16];
@@ -87,9 +93,7 @@ int main(){
 	
 	// -------------------------------------------------------------
 	int rbCmdToNm1=dtpOpenRingbufferDefault(ring_x86_to_nm1_cmd);
-	
 	int rbCmdToNm0=dtpOpenRingbufferDefault(ring_nm1_to_nm0_cmd);
-	
 	int rbImg=dtpOpenRingbuffer(ring_x86_to_nm1_img, memCopyPush, memCopyPop);
 	
 
@@ -145,7 +149,7 @@ int main(){
 	while (1) {
 		//printf("<<< 1:\n");
 		dtpRecv(rbCmdToNm1, &cmdIn, sizeof32(cmdIn));
-		printf("--------- [in] cnt:%d cmd:0x%x frmIndex:%d------ \n", cmdIn.counter, cmdIn.command, cmdIn.frmIndex);
+		PRINT("--------- [in] cnt:%d cmd:0x%x frmIndex:%d------ \n", cmdIn.counter, cmdIn.command, cmdIn.frmIndex);
 
 		if (cmdIn.command == DO_FFT0 || cmdIn.command == DO_FFT1) {
 
@@ -156,14 +160,28 @@ int main(){
 			nm8s* blurRoi8s = (nm8s*)ringBufferLo;
 			if (cmdIn.command == DO_FFT0)
 				nmppsSet_8s(0, blurRoi8s, DIM*DIM);
-			halDma2D_Start(roi, blurRoi8s, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM/4);
-			while (!halDmaIsCompleted());
+			//halDma2D_Start(roi, blurRoi8s, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM/4);
+			//while (!halDmaIsCompleted());
+			nm8s* src = (nm8s*)roi;
+			nm8s* dst = blurRoi8s;
+			for (int y = 0; y < cmdIn.frmRoi.height; y++) {
+				memcpy(dst, src, cmdIn.frmRoi.width/ 4);
+				src = nmppsAddr_8s(src, cmdIn.frmSize.width);
+				dst = nmppsAddr_8s(dst, DIM);
+			}
+			
+
+			
+			if (cmdIn.command == DO_FFT0 )	
+				VS_SAVE_IMAGE("1_FFT0_8s.vsimg", blurRoi8s, DIM, DIM, VS_RGB8_8);
+			else				
+				VS_SAVE_IMAGE("1_FFT1_8s.vsimg", blurRoi8s, DIM, DIM, VS_RGB8_8);
 			int *tail=ring_x86_to_nm1_img->ptrTail();
 			//memcpy(ringBufferLo, roi, DIM*DIM / 4);
 			//printf("%x %x %d\n", roi, tail, cmdIn.frmIndex);
 			
 			//dtpRecv(rbImg, ringBufferLo, DIM*DIM/4);
-			printf("in: recv ok\n");
+			PRINT("in: recv ok\n");
 
 			//ring_x86_to_nm1_img->tail+=DIM*DIM/4;
 			//nm8u* img8u= (nm8u*)ringBufferLo;
@@ -196,9 +214,19 @@ int main(){
 			nm32s* blurRoi32s = ring_nm1_to_nm0_diff->ptrHead();
 			
 			while (ring_nm1_to_nm0_diff->isFull()) 
-				printf("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff->head, ring_nm1_to_nm0_diff->tail);
-
+				PRINT("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff->head, ring_nm1_to_nm0_diff->tail);
+			//dump_8s("%d ", blurRoi8s, 16, 16, DIM, 0);
+			//printf("---\n");
+			//dump_8s("%d ", blurRoi8s, 16, 16, DIM, 0);
+			//printf("---\n");
 			nmppsConvert_8s32s(blurRoi8s, blurRoi32s, DIM*DIM);
+			//dump_32s("%d ", blurRoi32s, 16, 16, DIM, 0);
+
+			if (cmdIn.command == DO_FFT0)
+				VS_SAVE_IMAGE("1_FFT0_32s.vsimg", blurRoi32s, DIM, DIM, VS_RGB8_32);
+			else
+				VS_SAVE_IMAGE("1_FFT1_32s.vsimg", blurRoi32s, DIM, DIM, VS_RGB8_32);
+
 			//nmppsRShiftC_32s(blurImage32s, 7, toNM0, DIM*DIM);
 
 		//if (cmdIn.command == DO_FFT0)
@@ -219,18 +247,18 @@ int main(){
 			ring_nm1_to_nm0_diff->head+=DIM*DIM;
 			cmdOut.counter++;
 			cmdOut.command = cmdIn.command;
-			printf("out:%d 0x%x\n", cmdOut.counter, cmdOut.command);
-			dtpSend(rbCmdToNm0, &cmdOut, sizeof32(cmdOut));
+			PRINT("out:%d 0x%x\n", cmdOut.counter, cmdOut.command);
+			dtpSend(rbCmdToNm0, &cmdOut, sizeof32(Cmd_nm1_to_nm0));
 		}
 		
 		else if (cmdIn.command == DO_CORR) {
 			cmdOut.counter++;
 			cmdOut.command = DO_CORR;
-			printf("out:%d 0x%x\n", cmdOut.counter, cmdOut.command);
-			dtpSend(rbCmdToNm0, &cmdOut, sizeof32(cmdOut));
+			PRINT("out:%d 0x%x\n", cmdOut.counter, cmdOut.command);
+			dtpSend(rbCmdToNm0, &cmdOut, sizeof32(Cmd_nm1_to_nm0));
 		}
 		else{
-			printf("Don't this fucking command 0x%x\n",cmdIn.command);
+			PRINT("Don't this fucking command 0x%x\n",cmdIn.command);
 		}
 
 		//	ringBufferLo, SIZE/4);
@@ -245,6 +273,5 @@ int main(){
 	}
 
 	
-	printf("---------\n");
     return 0;
 }

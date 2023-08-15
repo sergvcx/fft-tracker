@@ -57,36 +57,18 @@ __attribute__((section(".data.imu5"))) 	nm32fcr FFT1_fcr[DIM*DIM];
 
 
 
-__attribute__((section(".data.imu0"))) nm32fcr fwdBuffer0[120];
-__attribute__((section(".data.imu1"))) nm32fcr fwdBuffer1[120];
-__attribute__((section(".data.imu2"))) nm32fcr fwdBuffer2[96];
-__attribute__((section(".data.imu0"))) nm32fcr fwdBuffer3[64];
-
-__attribute__((section(".data.imu0"))) nm32fcr invBuffer0[120];
-__attribute__((section(".data.imu1"))) nm32fcr invBuffer1[120];
-__attribute__((section(".data.imu2"))) nm32fcr invBuffer2[96];
-__attribute__((section(".data.imu0"))) nm32fcr invBuffer3[64];
+__attribute__((section(".data.imu0"))) nm32fcr fwdBuffer0[100+120];
+__attribute__((section(".data.imu1"))) nm32fcr fwdBuffer1[100+120];
+__attribute__((section(".data.imu2"))) nm32fcr fwdBuffer2[100+96];
+__attribute__((section(".data.imu0"))) nm32fcr fwdBuffer3[100+64];
+__attribute__((section(".data.imu0"))) nm32fcr invBuffer0[100+120];
+__attribute__((section(".data.imu1"))) nm32fcr invBuffer1[100+120];
+__attribute__((section(".data.imu2"))) nm32fcr invBuffer2[100+96];
+__attribute__((section(".data.imu0"))) nm32fcr invBuffer3[100+64];
 
 
 
 #define FILE "../exchange.bin"
-
-//#define X86_TO_NM0_BUFFER_SIZE ECHO		//0
-//#define X86_TO_NM1_BUFFER_SIZE SIZE*4	//1
-//#define NM0_TO_X86_BUFFER_SIZE ECHO		//2
-//#define NM1_TO_X86_BUFFER_SIZE ECHO		//3
-//#define NM0_TO_NM1_BUFFER_SIZE ECHO		//4
-//#define NM1_TO_NM0_BUFFER_SIZE SIZE	//5
-//
-//#define DIM 128
-//
-//__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_x86_to_nm0;
-//__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_x86_to_nm1;
-//__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm0_to_x86;
-//__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm1_to_x86;
-//__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm0_to_nm1;
-//__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm1_to_nm0;
-
 
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_x86_to_nm1_cmd;
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_x86_to_nm1_img;
@@ -103,24 +85,6 @@ __attribute__((section(".data.imu6")))   int data_nm1_to_nm0_diff[2 * DIM*DIM];
 __attribute__((section(".data.imu7")))	 int data_nm0_to_nm1_corr[2 * DIM*DIM];
 
 
-
-//__attribute__((section(".data.shmem1"))) int x86_to_nm1_buffer[X86_TO_NM1_BUFFER_SIZE];
-//__attribute__((section(".data.shmem0"))) int x86_to_nm0_buffer[X86_TO_NM0_BUFFER_SIZE];
-//__attribute__((section(".data.shmem0"))) int nm0_to_x86_buffer[NM0_TO_X86_BUFFER_SIZE];
-//__attribute__((section(".data.shmem0"))) int nm1_to_x86_buffer[NM1_TO_X86_BUFFER_SIZE];
-//__attribute__((section(".data.shmem0"))) int nm0_to_nm1_buffer[NM0_TO_NM1_BUFFER_SIZE];
-
-//__attribute__((section(".data.shmem0"))) int data_cnd_nm1_x86[4*DIM*DIM];
-
-
-//__attribute__((section(".data.emi"))) int img_m1_to_nm0_buffer[FULL_BANK];
-
-
-
-
-
-
-//HalRingBufferData<int, 128 * 128 * 4> ring;
 
 void* nmppsCopy_32f_(void* src, void* dst, unsigned size) {
 	//return memcpy(dst, src, size);
@@ -163,8 +127,11 @@ int* toLocal0(void* addr) {
 		return (int*)addr - 0x40000;
 	return (int*)addr;
 }
-//#define VS_SAVE_IMAGE(a,b,c,d,e) vsSaveImage(a,b,c,d,e)
-#define VS_SAVE_IMAGE(a,b,c,d,e) 
+#define VS_SAVE_IMAGE 
+//vsSaveImage
+#define PRINT printf
+
+//#define  printf 
 int main()
 {
 
@@ -260,32 +227,47 @@ int main()
 		
 		//t1 = clock();
 		
-		dtpRecv(rbCmd,&cmd, sizeof32(cmd));
-		printf("in: %d 0x%x\n", cmd.counter, cmd.command);
+		dtpRecv(rbCmd,&cmd, sizeof32(Cmd_nm1_to_nm0));
+		PRINT("in: %d 0x%x\n", cmd.counter, cmd.command);
 		if (cmd.command == DO_FFT0) {
+			PRINT("out: DO_FFT0\n");
 			while (ring_nm1_to_nm0_diff.isEmpty())
 				printf("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff.head, ring_nm1_to_nm0_diff.tail);
 
 			nm32s* in = toLocal0(ring_nm1_to_nm0_diff.ptrTail());
 			//printf("---32s-\n");
 			//dump_32s("%d ", (int*)in, 16, 16, 128, 1);
+			
+
+			//VS_SAVE_IMAGE("0_inFFT0_32s.vsimg", in, DIM, DIM, VS_RGB8_32);
+			VS_SAVE_IMAGE("0_inFFT0_32s.vsimg", in, DIM, DIM, VS_RGB8_32);
 			nmppsConvert_32s32fcr(in, FFT0_fcr, DIM*DIM);
+			VS_SAVE_IMAGE("0_inFFT0.vsimg", FFT0_fcr, DIM, DIM, VS_RGB32FC);
 			//printf("---32s-\n");
 			//dump_32s("%d ", (int*)in, 16, 16, 128, 1);
 			//printf("--32f--\n");
 			//dump_32f("%.0f ", (float*)FFT0_fcr, 16, 32, 256, 1);
-			VS_SAVE_IMAGE("../back/nmInFFT0.vsimg", FFT0_fcr, DIM, DIM, VS_RGB32FC);
+
 
 			ring_nm1_to_nm0_diff.tail += DIM * DIM;
+
+			//dump_32f("%f ", (nm32f*)FFT0_fcr, 16, 16, DIM * 2, 0);
+			//printf("---\n");
 			for (int i = 0; i < DIM; i++) {
 				nmppsFFT128Fwd_32fcr(FFT0_fcr + i * DIM, 1, tmpFFT_fcr + i, DIM, &specFwd);
 			}
+			//dump_32f("%f ", (nm32f*)tmpFFT_fcr, 16, 16, DIM * 2, 0);
+			//printf("---\n");
 			for (int i = 0; i < DIM; i++) {
 
 				nmppsFFT128Fwd_32fcr(tmpFFT_fcr + i * DIM, 1, FFT0_fcr + i, DIM, &specFwd);
 			}
+			//dump_32f("%f ", (nm32f*)FFT0_fcr, 16, 16, DIM * 2,0);
+			VS_SAVE_IMAGE("0_outFFT0.vsimg", FFT0_fcr, DIM , DIM, VS_RGB32FC);
+
 		}
 		else if (cmd.command == DO_FFT1) {
+			PRINT("out: DO_FFT1\n");
 			while (ring_nm1_to_nm0_diff.isEmpty())
 				printf("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff.head, ring_nm1_to_nm0_diff.tail);
 
@@ -293,8 +275,10 @@ int main()
 			//printf("--32s--\n");
 			//dump_32s("%d ", (int*)in, 16, 16, 128, 1);
 			//printf("--32f--\n");
+			VS_SAVE_IMAGE("0_inFFT1_32s.vsimg", in, DIM, DIM, VS_RGB8_32);
 			nmppsConvert_32s32fcr(in, FFT1_fcr, DIM*DIM );
-			VS_SAVE_IMAGE("../back/nmInFFT1.vsimg", FFT1_fcr, DIM, DIM, VS_RGB32FC);
+			VS_SAVE_IMAGE("0_inFFT1_32fcr.vsimg", FFT1_fcr, DIM, DIM, VS_RGB32FC);
+
 			//dump_32f("%.0f ",(float*) FFT1_fcr, 16, 32, 256, 1);
 			ring_nm1_to_nm0_diff.tail+=DIM*DIM;
 			for (int i = 0; i < DIM; i++) {
@@ -304,12 +288,13 @@ int main()
 			for (int i = 0; i < DIM; i++) {
 				nmppsFFT128Fwd_32fcr(tmpFFT_fcr + i * DIM, 1, FFT1_fcr + i, DIM, &specFwd);
 			}
+			VS_SAVE_IMAGE("0_outFFT1.vsimg", FFT1_fcr, DIM, DIM, VS_RGB32FC);
+			
 		}
 		else if (cmd.command == DO_CORR) {
-
 			nmppsConjMul_32fcr( FFT1_fcr, FFT0_fcr, tmpFFT_fcr, DIM*DIM);
-			VS_SAVE_IMAGE("../back/nmProfuctFFT.vsimg", tmpFFT_fcr, DIM, DIM, VS_RGB32FC);
-
+			VS_SAVE_IMAGE("0_ProdFFT.vsimg", tmpFFT_fcr, DIM, DIM, VS_RGB32FC);
+			//dump_32f("%f ", (nm32f*)tmpFFT_fcr, 16, 16, DIM * 2, 0);
 			//----------- inverse fft-------------- 
 			for (int i = 0; i < DIM; i++) {
 				nmppsFFT128Inv_32fcr(tmpFFT_fcr + i * DIM, 1, FFT1_fcr + i, DIM, &specInv);
@@ -318,35 +303,48 @@ int main()
 				nmppsFFT128Inv_32fcr(FFT1_fcr + i * DIM, 1, tmpFFT_fcr + i, DIM, &specInv);
 			}
 			
-			//for (int i = 0; i < DIM; i++) {
-			//	for (int j = 0; j < DIM; j++) {
-			//		//if (max < productIFFT_fc[i*dim + j].re) {
-			//		//	max = productIFFT_fc[i*dim + j].re;
-			//		//float abs= 
-			//		float re = tmpFFT_fcr[i*dim + j].re;
-			//		float im = tmpFFT_fcr[i*dim + j].im;
-			//		float abs = re * re + im * im;
-			//
-			//		productAbs32f[i*dim + j] = abs;
-			//		temp32f[i*dim + j] = abs;
-			//
-			//		//if (max < productIFFT_fcr[i*dim + j].re) {
-			//		//	max = productIFFT_fcr[i*dim + j].re;
-			//
-			//	}
-			//}
-			//
-			VS_SAVE_IMAGE("nmIFFT.vsimg", tmpFFT_fcr, DIM, DIM, VS_RGB32FC);
+			float max = 0;
+			//float* temp32f = (float*)tmpFFT_fcr;
+			for (int i = 0; i < DIM; i++) {
+				for (int j = 0; j < DIM; j++) {
+					//if (max < productIFFT_fc[i*dim + j].re) {
+					//	max = productIFFT_fc[i*dim + j].re;
+					//float abs= 
+					float re = tmpFFT_fcr[i*DIM + j].re;
+					//float im = tmpFFT_fcr[i*dim + j].im;
+					//float abs = re * re + im * im;
+			
+					//productAbs32f[i*dim + j] = abs;
+					//temp32f[i*DIM + j] = re;
+			
+					if (max < re) {
+						max = re;
+						caught.y = i;
+						caught.x = j;
+					}
+					
+			
+				}
+			}
+			//dump_32f("%.3f ", (nm32f*)tmpFFT_fcr, 14, 14, DIM * 2, 0);
+			//printf("---\n");
+			//dump_32f("%.2e ", (nm32f*)tmpFFT_fcr, 14, 14, DIM * 2, 0);
+
+			VS_SAVE_IMAGE("0_IFFT.vsimg", tmpFFT_fcr, DIM, DIM, VS_RGB32FC);
+			//vsSaveImage("0_IFFT.vsimg", tmpFFT_fcr, DIM, DIM, VS_RGB32FC);
+			//vsSaveImage("nmIFFT.vsimg", tmpFFT_fcr, DIM, DIM, VS_RGB32FC);
 			//float max = 0;
-			int idx = nmblas_isamax(DIM*DIM * 2, (const float*)tmpFFT_fcr, 1);
-			caught.y = idx >> 8;
-			caught.x = (idx % 256) >> 1;
+			
+			//int idx = nmblas_isamax(DIM*DIM * 2, (const float*)tmpFFT_fcr, 1);
+			//caught.y = idx >> 8;
+			//caught.x = (idx % 256) >> 1;
 			
 			dtpSend(rbTo86, &caught, sizeof32(caught));
-			printf("out:\n");
+			//dtpSend(rbTo86, &max, sizeof32(max));
+			
 		}
 		else {
-			printf("%d command:%d\n", cmd.counter, cmd.command);
+			PRINT("%d command:%d\n", cmd.counter, cmd.command);
 		}
 
 		//t0 = clock();
