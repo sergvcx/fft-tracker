@@ -621,7 +621,7 @@ int main()
 			// take profit :
 			dtpRecv(drOut, &caughtNM, sizeof32(caughtNM));
 			
-			//dtpRecv(drOut, &maxNM, sizeof32(maxNM));
+			dtpRecv(drOut, &maxNM, sizeof32(maxNM));
 			caughtOrgNM.x = currFrame.x + caughtNM.x*scale;
 			caughtOrgNM.y = currFrame.y + caughtNM.y*scale;
 			//caughtOrg = caughtOrgNM;

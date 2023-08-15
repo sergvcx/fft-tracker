@@ -335,12 +335,15 @@ int main()
 			//vsSaveImage("nmIFFT.vsimg", tmpFFT_fcr, DIM, DIM, VS_RGB32FC);
 			//float max = 0;
 			
-			//int idx = nmblas_isamax(DIM*DIM * 2, (const float*)tmpFFT_fcr, 1);
-			//caught.y = idx >> 8;
-			//caught.x = (idx % 256) >> 1;
+			int idx = nmblas_isamax(DIM*DIM * 2, (const float*)tmpFFT_fcr, 1);
+			NmppPoint c2;
+			c2.y = idx >> 8;
+			c2.x = (idx % 256) >> 1;
+			if (c2.y != caught.y || c2.x != caught.x)
+				printf("ERROR %d %d %d %d\n", c2.x, c2.y, caught.x, caught.y);
 			
 			dtpSend(rbTo86, &caught, sizeof32(caught));
-			//dtpSend(rbTo86, &max, sizeof32(max));
+			dtpSend(rbTo86, &max, sizeof32(max));
 			
 		}
 		else {
