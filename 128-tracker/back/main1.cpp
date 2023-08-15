@@ -9,6 +9,7 @@
 #include "dumpx.h"
 #include "tracker.h"
 #include "nmassert.h"
+#include "vsimg.h"
 
 Cmd_x86_to_nm1 cmdIn;
 Cmd_nm1_to_nm0 cmdOut = { 0,0 };
@@ -50,90 +51,6 @@ static void* memCopyPush(const void *src, void *dst, unsigned int size32) {
 	//}
 //}
 
-
-#define VS_RGB1 1
-#define VS_RGB4 2
-#define VS_RGB8 3
-#define VS_RGB16 4
-#define VS_RGB24 5
-#define VS_RGB32 6
-#define VS_RGB8_8 7
-#define VS_RGB8_16 8
-#define VS_RGB8_32 9
-#define VS_RGB32F 10
-#define VS_RGB32FC 11
-
-void	vsSaveImage(char* filename, void* data, int width, int height, int type) {
-	
-	int* data32 = (int*)data;
-	FILE* f = fopen(filename,"wb");
-	int size= width * height;
-	int size32=0;
-	switch (type) {
-	case VS_RGB1 :
-		size32 = size/32; break;
-	case VS_RGB4:
-		size32 = size/8; break;
-	case VS_RGB8_8:
-	case VS_RGB8:
-		size32 = size/4; break;
-	case VS_RGB16 :
-	case VS_RGB8_16:
-		size32 = size/2; break;
-	case VS_RGB24 :
-		size32 = size*3/4; break;
-	case VS_RGB32:
-	case VS_RGB8_32:
-	case VS_RGB32F:
-		size32 = size; break;
-	case VS_RGB32FC:
-		size32 = size*2; break;
-	}
-	if (f) {
-		int id=0x00006407;
-		fwrite(&id, 1, 1, f);
-		fwrite(&type, 1, 1, f);
-		fwrite(&width, 1, 1, f);
-		fwrite(&height, 1, 1, f);
-		//fwrite(data, 1, size32, f);
-
-		int block32 = 4*1024;
-		if (1) while (size32) {
-			size_t rsize;
-			if (size32 < block32) {
-				rsize = fwrite(data32,  sizeof(int),size32, f);
-				size32 -= size32;
-				
-			}
-			else {
-				rsize = fwrite(data32,  sizeof(int), block32, f);
-				size32 -= block32;
-				data32 += block32;
-			}
-		}
-		fclose(f);
-	}
-}
-void	vsReadImage(char* filename, void* data, int* width, int* height, int* type) {
-	FILE* f = fopen(filename, "wb");
-	
-	if (f) {
-		
-		fseek(f, 0, SEEK_END);
-		int size = ftell(f);
-		fseek(f, 0, SEEK_SET);
-		int id;// = 0x00006407;
-		fread(&id, 1, 1, f);
-		fread(&type, 1, 1, f);
-		fread(&width, 1, 1, f);
-		fread(&height, 1, 1, f);
-		//int size = *width * height;
-
-
-		fread(data, 1, size - 16, f);
-		fclose(f);
-	}
-}
 
 #define FILE "../exchange.bin"
 int blurWeights[16 * 16];

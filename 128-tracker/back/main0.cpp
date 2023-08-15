@@ -16,6 +16,7 @@
 #include "dumpx.h"
 #include "mc12101load_nm.h"
 #include "tracker.h"
+#include "vsimg.h"
 void swap(void** ptr0, void** ptr1) {
 	void* tmp = *ptr1;
 	*ptr1 = *ptr0;
