@@ -303,7 +303,7 @@ int main()
 		}
 		else if (cmd.command == DO_CORR) {
 
-			nmppsConjMul_32fcr(FFT0_fcr, FFT1_fcr, tmpFFT_fcr, DIM*DIM);
+			nmppsConjMul_32fcr( FFT1_fcr, FFT0_fcr, tmpFFT_fcr, DIM*DIM);
 			//----------- inverse fft-------------- 
 			for (int i = 0; i < DIM; i++) {
 				nmppsFFT128Inv_32fcr(tmpFFT_fcr + i * DIM, 1, FFT1_fcr + i, DIM, &specInv);
@@ -330,7 +330,7 @@ int main()
 			//	}
 			//}
 			//
-
+			vsSaveImage("product.img",)
 			//float max = 0;
 			int idx = nmblas_isamax(DIM*DIM * 2, (const float*)tmpFFT_fcr, 1);
 			caught.y = idx >> 8;

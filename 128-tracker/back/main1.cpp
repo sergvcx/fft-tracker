@@ -237,7 +237,7 @@ int main(){
 			}
 			int *roi = ring_x86_to_nm1_img->data +cmdIn.frmIndex*imgSize32 + cmdIn.frmRoi.y*imgDim.width / 4 + cmdIn.frmRoi.x / 4;
 			nm8s* blurRoi8s = (nm8s*)ringBufferLo;
-			if (cmdIn.command == DO_FFT1)
+			if (cmdIn.command == DO_FFT0)
 				nmppsSet_8s(0, blurRoi8s, DIM*DIM);
 			halDma2D_Start(roi, blurRoi8s, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM/4);
 			while (!halDmaIsCompleted());
@@ -253,9 +253,10 @@ int main(){
 			//nm8s* img8s= (nm8s*)ringBufferLo;
 			
 		//if (cmdIn.command== DO_FFT0)
-		//	vsSaveImage("fft0_in8u.img", img8u, DIM, DIM, VS_RGB8_8);
+		//	vsSaveImage("fft0_in8s.img", blurRoi8s, DIM, DIM, VS_RGB8_8);
 		//else 
-		//	vsSaveImage("fft1_in8u.img", img8u, DIM, DIM, VS_RGB8_8);
+		//	vsSaveImage("fft1_in8s.img", blurRoi8s, DIM, DIM, VS_RGB8_8);
+		
 		//	//nmppsSet_8u(0, img8u,DIM*DIM);
 		//	//---------------------------------------
 		//	nmppsSubC_8s((nm8s*)img8u, 127, img8s, DIM*DIM);
@@ -283,10 +284,10 @@ int main(){
 			nmppsConvert_8s32s(blurRoi8s, blurRoi32s, DIM*DIM);
 			//nmppsRShiftC_32s(blurImage32s, 7, toNM0, DIM*DIM);
 
-		if (cmdIn.command == DO_FFT0)
-			vsSaveImage("fft0_in32s.img", blurRoi32s, DIM, DIM, VS_RGB8_32);
-		else
-			vsSaveImage("fft1_in32s.img", blurRoi32s, DIM, DIM, VS_RGB8_32);
+		//if (cmdIn.command == DO_FFT0)
+		//	vsSaveImage("fft0_in32s.img", blurRoi32s, DIM, DIM, VS_RGB8_32);
+		//else
+		//	vsSaveImage("fft1_in32s.img", blurRoi32s, DIM, DIM, VS_RGB8_32);
 
 
 			//nmppsConvert_8s32s((nm8s*)ringBufferLo, (nm32s*)ring_nm1_to_nm0_diff->ptrHead(), DIM*DIM);

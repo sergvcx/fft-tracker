@@ -39,6 +39,8 @@ void swap(void** ptr0, void** ptr1) {
 	*ptr0 = tmp;
 }
 
+//resize(prevOrigin8u + prevFrame.y*WIDTH + prevFrame.x, srcRoiSize, WIDTH, prevImage8u, dimRoiSize, DIM);
+//resize(currOrigin8u + currFrame.y*WIDTH + currFrame.x, srcRoiSize, WIDTH, currImage8u, dimRoiSize, DIM);
 
 IppStatus resize(Ipp8u* pSrc, IppiSize srcSize, Ipp32s srcStep, Ipp8u* pDst, IppiSize	dstSize, Ipp32s dstStep)
 {
@@ -121,9 +123,9 @@ int main()
 	//if (!VS_Bind("..\\Samples\\Road1.avi"))
 	//if (!VS_Bind("..\\Samples\\Road2.avi"))
 #ifdef _DEBUG
-	//if (!VS_Bind("..\\..\\..\\Samples\\Road2.avi"))
+	if (!VS_Bind("..\\..\\..\\Samples\\Road2.avi"))
 	//if (!VS_Bind("../Samples/strike(xvid).avi"))
-	if (!VS_Bind("..\\..\\..\\Samples\\victory22_360x360(xvid).avi"))
+	//if (!VS_Bind("..\\..\\..\\Samples\\victory22_360x360(xvid).avi"))
 		//if (!VS_Bind("..\\..\\..\\Samples\\strike(xvid).avi"))
 		//if (!VS_Bind("..\\..\\..\\Samples\\strike256(xvid).avi"))
 		//if (!VS_Bind("..\\..\\..\\Samples\\victory22_384x360(xvid).avi"))
@@ -150,7 +152,7 @@ int main()
 	//if (!VS_Bind("d:\\video\\films\\256x256\\2xFormula2.avi"))
 	int WIDTH = VS_GetWidth(VS_SOURCE);
 	int HEIGHT = VS_GetHeight(VS_SOURCE);
-	IppiSize orgSize{ WIDTH,HEIGHT };
+	//IppiSize orgSize{ WIDTH,HEIGHT };
 
 	nm32u	*currOriginC = nmppsMalloc_32u(WIDTH*HEIGHT);
 	nm32u	*prevOriginC = nmppsMalloc_32u(WIDTH*HEIGHT);
@@ -158,8 +160,8 @@ int main()
 	nm8u	*currOrigin8u = nmppsMalloc_8u(WIDTH*HEIGHT);
 
 
-	IppiFFTSpec_C_32fc *spec;
-	IppStatus st;
+	//IppiFFTSpec_C_32fc *spec;
+	//IppStatus st;
 
 #define LOG2DIM 7
 	int width = DIM;
@@ -231,8 +233,9 @@ int main()
 		//st = ippiFFTInitAlloc_C_32fc(&spec, LOG2DIM, LOG2DIM, IPP_FFT_DIV_INV_BY_N, ippAlgHintNone);
 
 		S_VS_MouseStatus MouseStatus;
-		VS_CreateSlider("width", 0, 0.1, 1, 0.01, 1);
-		VS_CreateSlider("wantedSize", 1, 1, 255, 1, 20);
+		//VS_CreateSlider("width", 0, 0.1, 1, 0.01, 1);
+#define SLIDER_WANTED_SIZE 1		
+		VS_CreateSlider("wantedSize", SLIDER_WANTED_SIZE, 8, DIM, 8, 24);
 		VS_CreateSlider("blurSize", 2, 1, 255, 1, 11);
 		VS_CreateSlider("norm1", 3, 1, 10000, 1, 1);
 		VS_CreateSlider("norm2", 4, 1, 10000, 1, 1);
@@ -263,10 +266,10 @@ int main()
 #define CURR_BLUR 13
 #define DIFF_BLUR 14
 #define WANRED 15
-		VS_CreateImage("CurrBlur8", CURR_BLUR, width, height, VS_RGB8_8, 0);
-		VS_CreateImage("PrevBlur8", PREV_BLUR, width, height, VS_RGB8_8, 0);
-		VS_CreateImage("DiffBlur8", DIFF_BLUR, width, height, VS_RGB8_8, 0);
-		VS_CreateImage("Wanted", WANRED, width, height, VS_RGB8_8, 0);
+		//VS_CreateImage("CurrBlur8", CURR_BLUR, width, height, VS_RGB8_8, 0);
+		//VS_CreateImage("PrevBlur8", PREV_BLUR, width, height, VS_RGB8_8, 0);
+		//VS_CreateImage("DiffBlur8", DIFF_BLUR, width, height, VS_RGB8_8, 0);
+		//VS_CreateImage("Wanted", WANRED, width, height, VS_RGB8_8, 0);
 
 #define CURR_IMG_FC 213
 #define PREV_IMG_FC 214
@@ -304,102 +307,58 @@ int main()
 	nmppiSetFilter_8s32s(blurWeights, blurSize, blurSize, DIM, blurKernel);
 	
 
-	
-
-
-	int wantedSize = 10;
-
-	//int status;
-	//float cropFactor;
-	//	PL_Board *board;
-	//	int ok=PL_GetBoardDesc(0, &board);
-	//	PL_Access *access;
-	//	ok=PL_GetAccess(board, 0, &access);
-	//	int desc=dtpOpenPloadFileHost(access, "../handshake.bin");
-	//	dr = desc;
-	//	
-	//	uintptr_t ringAddr=0;
-	//	dtpRecv(dr, &ringAddr, 1);
-	//	int dwb = dtpOpenPloadRingbuffer(access, ringAddr);
-	//	dw = dwb;
-	//}
-
-	NmppPoint caught = {32,32};
+	NmppPoint caught = {126,59};
 	NmppPoint currFrame={ 0,0 };
 	NmppPoint prevFrame={ 0,0 };
 	NmppPoint caughtNM = { 0,0 };
 	NmppPoint caughtOrg = { 32,32 };
 	NmppPoint caughtOrgNM = { 0,0 };
-	NmppPoint wanted = { 10,60 };
+	//NmppPoint wanted = { 10,60 };
 	NmppPoint wantedOrg = caughtOrg;
 
 	Cmd_x86_to_nm1 cmd = {0,0,0,0};
 
-	cmd.command = 0x64078086;
-	cmd.counter++;
-	cmd.frmIndex = 0;
-	cmd.frmRoi.height = DIM;
-	cmd.frmRoi.width = DIM;
-	cmd.frmRoi.x = 0;
-	cmd.frmRoi.y = 0;
-	cmd.frmSize.height = HEIGHT;
-	cmd.frmSize.width = WIDTH;
-
 	if (MC12101) {
-
-		//dtpSend(toNM1, &cmd, sizeof32(cmd)); //Handshake
-
-		//int handshakeMsg[] = { 0,1,2,3,4,5,6,7};
-		//dtpSend(dwImg, handshakeMsg, sizeof32(handshakeMsg));
-
-
 		cmd.command = 0x64078086;
 		cmd.counter++;
+		cmd.frmIndex = 0;
+		cmd.frmRoi = { 0,0,DIM,DIM };
+		cmd.frmSize = { WIDTH, HEIGHT };
 		dtpSend(toNM1, &cmd, sizeof32(cmd));
 	}
-
-	//VS_GetGrayData(VS_SOURCE, currOrigin8u);
-	//int counter = 0;
 	VS_OpRunForward();
+	int startFrame = 200;
+	int stopFrame  = startFrame+128;
+	VS_Seek(startFrame);
+	int wantedOrgOffsetX = 0;
+	//======================================================================
+	//======================================================================
+	//======================================================================
+	//======================================================================
+	bool loadBlur = true;
 	while (int status=VS_Run()) {
-
-		//for (int i = 0; i < size; i++) {
-			//currImage_fcr[i] = { 0,0 };
-			//prevImage_fcr[i] = { 0,0 };
-			//wantedImage_fcr[i] = { 0,0 };
-		//}
-		//memset(diffBlur8u, 0, size);
-		//memset(wantedImage8s, 0, size);
 		// ----------------------------- SLIDER HANDLING ----------------------------
-		//cropFactor = VS_GetSlider(0);
 		float scale = VS_GetSlider(SLIDER_SCALE);
-		IppiSize srcRoiSize = { DIM*scale,DIM*scale };
-		IppiSize dimRoiSize = { DIM,DIM };
+		//IppiSize srcRoiSize = { DIM*scale,DIM*scale };
+		//IppiSize dimRoiSize = { DIM,DIM };
 
-		int wantedSize = VS_GetSlider(1);
-		int blurSize = VS_GetSlider(2);
+		int wantedSize = VS_GetSlider(1);wantedSize >>= 3;	wantedSize <<= 3;
+		int blurSize   = VS_GetSlider(2);
 		// ------------------------------- MOUSE HANDLING ----------------------------		
 		VS_GetMouseStatus(&MouseStatus);
 		if (MouseStatus.nKey == VS_MOUSE_CONTROL) {
 			if (MouseStatus.nID == PREV_ORIGIN_IMG || MouseStatus.nID == CURR_ORIGIN_IMG) {
-				
-				wantedOrg.x = MouseStatus.nX;
+				wantedOrg.x = MouseStatus.nX>>3<<3;
 				wantedOrg.y = MouseStatus.nY;
-				currFrame.x = MIN(WIDTH  - DIM, MAX(0, wantedOrg.x - DIM / 2));
+				currFrame.x = MIN(WIDTH  - DIM, MAX(0, wantedOrg.x - DIM / 2))>>3<<3;
 				currFrame.y = MIN(HEIGHT - DIM, MAX(0, wantedOrg.y - DIM / 2));
-				//prevFrame   = currFrame;
-
 				caughtOrg   = wantedOrg;
 			}
 		}
 
 		if (MouseStatus.nKey == VS_MOUSE_LBUTTON) {
-			//if (MouseStatus.nID == PREV_IMG8) {
-			//	wantedOrg.y = prevFrame.y + MouseStatus.nY;
-			//	wantedOrg.x = prevFrame.x + MouseStatus.nX;
-			//}
 			if (MouseStatus.nID == PREV_ORIGIN_IMG || MouseStatus.nID == CURR_ORIGIN_IMG) {
-				wantedOrg.x = MouseStatus.nX;
+				wantedOrg.x = MouseStatus.nX>>3<<3;
 				wantedOrg.y = MouseStatus.nY;
 				caughtOrg = wantedOrg;
 				//currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x - DIM / 2));
@@ -423,77 +382,47 @@ int main()
 			nmppsRShiftC_32s(tempFull32s, 8, tempFull32s, WIDTH*HEIGHT);
 			nmppsConvert_32s8s(tempFull32s, currFullBlur8s, WIDTH*HEIGHT);
 			
-			if (VS_GetSrcFrameNum() == 0) {
+			if (VS_GetSrcFrameNum() == startFrame) {
 				VS_GetData(VS_SOURCE, prevOriginC);
 				VS_GetGrayData(VS_SOURCE, prevOrigin8u);
-
 				memcpy(prevFullBlur8s, currFullBlur8s, WIDTH*HEIGHT);
 			}
 			VS_SetData(PREV_ORIGIN_IMG, prevOriginC);
 			VS_SetData(CURR_ORIGIN_IMG, currOriginC);
 			
-			wantedOrg = caughtOrg; 
-			currFrame.x = MIN(WIDTH  - DIM, MAX(0, wantedOrg.x - DIM / 2));
+			wantedOrg = caughtOrg;
+			currFrame.x = MIN(WIDTH  - DIM, MAX(0, wantedOrg.x - DIM / 2))>>3<<3;
 			currFrame.y = MIN(HEIGHT - DIM, MAX(0, wantedOrg.y - DIM / 2));
+			// 8-byte alignment
+			wantedOrg.x += wantedOrgOffsetX; // compensation from prev step offset
+			wantedOrgOffsetX = wantedOrg.x % 8;
+			wantedOrg.x >>=3;
+			wantedOrg.x <<=3;
 		}
-		//resize(prevOrigin8u + prevFrame.y*WIDTH + prevFrame.x, srcRoiSize, WIDTH, prevImage8u, dimRoiSize, DIM);
-		//resize(currOrigin8u + currFrame.y*WIDTH + currFrame.x, srcRoiSize, WIDTH, currImage8u, dimRoiSize, DIM);
 
 		//ippiSuperSampling_8u_C1R(currOrigin8u, WIDTH, srcRoiSize, currOrigin8u, dim, dimRoiSize, buffer);
 		VS_SetData(PREV_IMG8, prevImage8u);
 		VS_SetData(CURR_IMG8, currImage8u);
 		VS_SetData(PREV_ORG_BLUR_8S, prevFullBlur8s);
 		VS_SetData(CURR_ORG_BLUR_8S, currFullBlur8s);
-	
 
-		//--------------- prepare current input ----------------
-		//ippiFilterBox_8u_C1R((Ipp8u*)currImage8u, width, currBlur8u, width, dimRoiSize, { blurSize, blurSize }, { blurSize /2, blurSize /2 });
-		
-		//nmppsSubC_8s((nm8s*)currImage8u, 127, currImage8s, DIM*DIM);
-		//nmppiFilter_8s32s(currImage8s, blurImage32s, DIM, DIM, blurKernel);
-		//nmppsRShiftC_32s(blurImage32s, 7, blurImage8s, WIDTH*HEIGHT);
+		VS_Rectangle(PREV_ORIGIN_IMG, currFrame.x, currFrame.y, currFrame.x + DIM * scale, currFrame.y + DIM * scale, VS_BLUE, VS_NULL_COLOR);
+		VS_Rectangle(CURR_ORIGIN_IMG, currFrame.x, currFrame.y, currFrame.x + DIM * scale, currFrame.y + DIM * scale, VS_BLUE, VS_NULL_COLOR);
+		VS_Rectangle(PREV_ORIGIN_IMG, wantedOrg.x, wantedOrg.y, wantedOrg.x + wantedSize * scale, wantedOrg.y + wantedSize * scale, VS_RED, VS_NULL_COLOR);
 
-		//sobel(currImage8u, blurImage, width,  height);
-//		sobelCmplx(currImage8u, currImage_fcr, width, height);
-
-		VS_SetData(CURR_BLUR, currBlur8u);
-
-		for (int i = 0,k=0; i < DIM; i++) {
-			for (int j = 0; j < DIM; j++, k++) {
-				int blurDiff = currFullBlur8s[WIDTH*(currFrame.y + i) + currFrame.x + j];
-				currImage_fcr[k] = { 0, float(blurDiff) };
-				currImage8s[k] = blurDiff;
-			}
-		}
-		//for (int i = 0; i < size; i++) {
-		////	float diff0 = (float)currImage8u[i] - (float)currBlur8u[i];
-		////	float diff = blurImage[i];
-		////	//currImage_fc [i] = { diff,0 };
-		//	//currImage_fcr[i] = { 0,diff };
-		//	float diff = (float)blurImage32s[i];
-		//	currImage_fcr[i].re = diff ;
-		//	//currImage_fcr[i] = { diff,0};
-		//	currImage8s[i] = diff;// / 2;
-		//}
-		VS_SetData(CURR_IMG_FC, currImage_fcr);
-		
-		//---------------- prepare wanted input ----------------
+		// ------------------- wanted preparation --------------
 		//ippiFilterBox_8u_C1R((Ipp8u*)prevImage8u, width, prevBlur8u, width, dimRoiSize, { blurSize, blurSize }, { blurSize / 2, blurSize / 2 });
 		
-		//nmppsSubC_8s((nm8s*)prevImage8u, 127, prevImage8s, DIM*DIM);
-		//nmppiFilter_8s32s(prevImage8s, blurImage32s, DIM, DIM, blurKernel);
-		//nmppsRShiftC_32s(blurImage32s, 7, blurImage32s, DIM*DIM);
-		//nmppsConvert_32s8s(blurImage32s, blurImage8s,)
-		//	
-
 
 
 		//VS_SetData(PREV_BLUR, prevBlur8u);
 		//ippiFilterBox_8u_C1R((Ipp8u*)prevImage8u, width, blurImage, width, s, { blurSize, blurSize }, { blurSize / 2, blurSize / 2 });
 		//sobel(prevImage8u, blurImage, width, height);
-//		sobelCmplx(prevImage8u, prevImage_fcr, width, height);
+	//		sobelCmplx(prevImage8u, prevImage_fcr, width, height);
 		memset(wantedImage_fcr, 0, DIM*DIM* 8);
 		memset(wantedImage8s, 0, DIM*DIM);
+		_ASSERTE(wantedOrg.x % 8 == 0);
+		_ASSERTE(wantedSize % 8 == 0);
 		for (int i = 0; i < wantedSize; i++) {
 			for (int j = 0; j < wantedSize; j++) {
 				int blurDiff = prevFullBlur8s[WIDTH*(wantedOrg.y + i) + wantedOrg.x + j];
@@ -501,34 +430,8 @@ int main()
 				wantedImage8s[i*DIM + j] = blurDiff;
 			}
 		}
-
-		//for (int i = 0; i < size; i++) {
-		////	float diff0 = (float)prevImage8u[i] - (float)prevBlur8u[i];
-		//	float diff = (float)blurImage32s[i];
-		////	prevImage_fc [i] = { diff, 0 };
-		//	//prevImage_fcr[i] = { 0,diff};
-		//	prevImage_fcr[i].re= diff;
-		//	prevImage8s[i] = diff;
-		//}
-		VS_SetData(PREV_IMG_FC, wantedImage_fcr);
+		//VS_SetData(PREV_IMG_FC, wantedImage_fcr);
 		
-		// ------------------- wanted preparation --------------
-		//wanted.x = wantedOrg.x - prevFrame.x;
-		//wanted.y = wantedOrg.y - prevFrame.y;
-		//_ASSERTE(wanted.x >= 0);
-		//_ASSERTE(wanted.y >= 0);
-		//_ASSERTE(wanted.x + wantedSize < DIM);
-		//_ASSERTE(wanted.y + wantedSize < DIM);
-		//
-		//for (int i = 0; i <  wantedSize; i++) {
-		//	for (int j = 0; j < wantedSize; j++) {
-		//		//wantedImage_fc[i*width + j]  =  prevImage_fc [(wanted.y + i)*width + wanted.x + j];
-		//		wantedImage_fcr[i*width + j] =  prevImage_fcr[(wanted.y + i)*DIM + wanted.x + j];
-		//		wantedImage8s[i*width + j] = prevImage8s[(wanted.y + i)*DIM + wanted.x + j];
-		//		wantedImage8u[i*width + j] = prevImage8u[(wanted.y + i)*DIM + wanted.x + j];
-		//	}
-		//}
-		//
 		// ----------------- BLUR  MASK ------------
 		//float blurPoint = prevBlur8u[(wanted.y + wantedSize / 2)*DIM + wanted.x + wantedSize / 2];
 		//for (int i = 0; i < DIM - wantedSize; i++) {
@@ -540,52 +443,71 @@ int main()
 //		VS_SetData(WANRED, wantedImage8s);
 		//VS_SetData(WANTED_IMG_FC, wantedImage_fc);
 
-//*************************************************************************************
-//*************************************************************************************
-//*************************************************************************************
-		
-	NmppSize frmFullSize = { WIDTH,HEIGHT };
-	NmppRect frmFullRoi = { 0,0,WIDTH,HEIGHT };
-	int originSize32 = WIDTH * HEIGHT / 4;
-	if (MC12101) {
 
-		int frmIndex = VS_GetSrcFrameNum();
-		dtpSend(dwImg, currImage8u, originSize32);
-		
-		cmd.command = DO_BLUR;
-		cmd.counter++;
-		cmd.frmIndex = frmIndex;
-		cmd.frmSize  = frmFullSize;
-		cmd.frmRoi   = frmFullRoi;
-		dtpSend(toNM1,&cmd,sizeof32(cmd));
+		//--------------- prepare current input ----------------
+	
+		//ippiFilterBox_8u_C1R((Ipp8u*)currImage8u, width, currBlur8u, width, dimRoiSize, { blurSize, blurSize }, { blurSize /2, blurSize /2 });
+		//sobel(currImage8u, blurImage, width,  height);
+		//sobelCmplx(currImage8u, currImage_fcr, width, height);
+		//VS_SetData(CURR_BLUR, currBlur8u);
 
-		
-		if (frmIndex > 1) {
-			cmd.command = DO_FFT0;
-			cmd.counter++;
-			cmd.frmIndex = frmIndex-1;
-			cmd.frmSize = frmFullSize;
-			cmd.frmRoi = {currFrame.x,currFrame.y,DIM,DIM};
-			dtpSend(toNM1, &cmd, sizeof32(cmd));
-			
-			cmd.command = DO_FFT1;
-			cmd.counter++;
-			cmd.frmIndex = frmIndex ;
-			cmd.frmSize = frmFullSize;
-			cmd.frmRoi = { wanted.x,wanted.y,wantedSize, wantedSize};
-			dtpSend(toNM1, &cmd, sizeof32(cmd));
-		
-			cmd.command = DO_CORR;
-			cmd.counter++;
-			dtpSend(toNM1, &cmd, sizeof32(cmd));
-
-			// take profit :
-			dtpRecv(drOut, &caughtNM, sizeof32(caughtNM));
+		_ASSERTE(currFrame.x % 8 == 0);
+		for (int i = 0,k=0; i < DIM; i++) {
+			for (int j = 0; j < DIM; j++, k++) {
+				int blurDiff = currFullBlur8s[WIDTH*(currFrame.y + i) + currFrame.x + j];
+				currImage_fcr[k] = { 0, float(blurDiff) };
+				currImage8s[k] = blurDiff;
+			}
 		}
+		//VS_SetData(CURR_IMG_FC, currImage_fcr);
+		
+//*************************************************************************************
+//*************************************************************************************
+//*************************************************************************************
+		
+NmppSize frmFullSize = { WIDTH,HEIGHT };
+NmppRect frmFullRoi = { 0,0,WIDTH,HEIGHT };
+int originSize32 = WIDTH * HEIGHT / 4;
+int Loop = 128;
+if (MC12101) {
 
-		
-		
+	int currFrameNum = VS_GetSrcFrameNum();
+	if (loadBlur) {
+		dtpSend(dwImg, currFullBlur8s, originSize32);
+		if (currFrameNum == startFrame)
+			dtpSend(dwImg, currFullBlur8s, originSize32);
 	}
+
+	if (currFrameNum >= stopFrame) {
+		loadBlur = false;
+		VS_Seek(startFrame);
+	}
+		
+	cmd.command = DO_FFT0;
+	cmd.counter++;
+	cmd.frmIndex = currFrameNum -startFrame;
+	cmd.frmSize = frmFullSize;
+	cmd.frmRoi = {currFrame.x,currFrame.y,DIM,DIM};
+	dtpSend(toNM1, &cmd, sizeof32(cmd));
+			
+	cmd.command = DO_FFT1;
+	cmd.counter++;
+	cmd.frmIndex++;
+	cmd.frmSize = frmFullSize;
+	cmd.frmRoi = { wantedOrg.x,wantedOrg.y,wantedSize, wantedSize};
+	dtpSend(toNM1, &cmd, sizeof32(cmd));
+		
+	cmd.command = DO_CORR;
+	cmd.counter++;
+	dtpSend(toNM1, &cmd, sizeof32(cmd));
+
+	// take profit :
+	dtpRecv(drOut, &caughtNM, sizeof32(caughtNM));
+		
+}
+//*************************************************************************************
+//*************************************************************************************
+//*************************************************************************************
 
 
 		// ----------forward fft ----------------
@@ -594,11 +516,10 @@ int main()
 			//st = ippiFFTFwd_CToC_32fc_C1R(currImage_fc, dim * 8, currFFT_fc, dim * 8, spec, 0);
 			//st = ippiFFTFwd_CToC_32fc_C1R(wantedImage_fc, dim * 8, wantedFFT_fc, dim * 8, spec, 0);
 			
-			for (int i = 0; i < DIM; i++) 	nmppsFFT128Fwd_32fcr(currImage_fcr+ i * DIM, 1, tmpFFT_fcr+i, DIM, spec128);
-			for (int i = 0; i < DIM; i++) 	nmppsFFT128Fwd_32fcr(tmpFFT_fcr  + i * DIM, 1, currFFT_fcr + i, DIM, spec128);
 			for (int i = 0; i < DIM; i++) 	nmppsFFT128Fwd_32fcr(wantedImage_fcr + i * DIM, 1,  tmpFFT_fcr + i, DIM, spec128);
 			for (int i = 0; i < DIM; i++) 	nmppsFFT128Fwd_32fcr(tmpFFT_fcr + i * DIM, 1, wantedFFT_fcr + i, DIM, spec128);
-		
+			for (int i = 0; i < DIM; i++) 	nmppsFFT128Fwd_32fcr(currImage_fcr+ i * DIM, 1, tmpFFT_fcr+i, DIM, spec128);
+			for (int i = 0; i < DIM; i++) 	nmppsFFT128Fwd_32fcr(tmpFFT_fcr  + i * DIM, 1, currFFT_fcr + i, DIM, spec128);
 			//VS_SetData(CURR_FFT, currFFT_fc);
 			//VS_SetData(WANT_FFT, wantedFFT_fc);
 			//-------- NORMAL ORDER ---------- 
@@ -613,10 +534,12 @@ int main()
 			////------- FUCKING ORDER ----------- 
 			
 			
-			for (int i = 0; i < size; i++) {
-				productFFT_fcr[i].re =  currFFT_fcr[i].re * wantedFFT_fcr[i].re + currFFT_fcr[i].im * wantedFFT_fcr[i].im;
-				productFFT_fcr[i].im = -currFFT_fcr[i].re * wantedFFT_fcr[i].im + currFFT_fcr[i].im * wantedFFT_fcr[i].re;
-			}
+			//for (int i = 0; i < size; i++) {
+			//	productFFT_fcr[i].re =  currFFT_fcr[i].re * wantedFFT_fcr[i].re + currFFT_fcr[i].im * wantedFFT_fcr[i].im;
+			//	productFFT_fcr[i].im = -currFFT_fcr[i].re * wantedFFT_fcr[i].im + currFFT_fcr[i].im * wantedFFT_fcr[i].re;
+			//}
+			nmppsConjMul_32fcr(currFFT_fcr, wantedFFT_fcr, productFFT_fcr, DIM*DIM);
+
 
 			//VS_SetData(332, productFFT_fcr);
 
@@ -641,12 +564,9 @@ int main()
 
 					productAbs32f[i*DIM + j] = abs;
 					temp32f[i*DIM + j] = abs;
-					
-					//if (max < productIFFT_fcr[i*DIM + j].re) {
-					//	max = productIFFT_fcr[i*DIM + j].re;
-					
 				}
 			}
+			
 			int blurThresh=VS_GetSlider(SLIDER_BLUR_THRESH);
 			
 			for (int k = 0; k < VS_GetSlider(SLIDER_DEPTH_SEARCH); k++) {
@@ -654,13 +574,10 @@ int main()
 				float max = 0;
 				for (int i = 0; i < DIM - wantedSize; i++) {
 					for (int j = 0; j < DIM - wantedSize; j++) {
-			
 						float abs = temp32f[i*DIM + j];
 						if (max < abs) {
 							max = abs;
-			
-							caught.x = j;
-							caught.y = i;
+							caught = { j,i };
 							if (k == 0)
 								caught0 = caught;
 						}
@@ -671,60 +588,15 @@ int main()
 				
 				//if (diffBlur8u[caught.y*DIM + caught.x] < blurThresh)
 				{
-
-
 					caughtOrg.x = currFrame.x + caught.x*scale;
 					caughtOrg.y = currFrame.y + caught.y*scale;
-
 					VS_Rectangle(CURR_ORIGIN_IMG, caughtOrg.x, caughtOrg.y, caughtOrg.x + wantedSize * scale, caughtOrg.y + wantedSize * scale, VS_GREEN, VS_NULL_COLOR);
-					//VS_Rectangle(CURR_IMG8,       caught.x, caught.y, caught.x + wantedSize, caught.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
-
-
-					//wantedOrg.x = frame.x + wanted.x*scale;
-					//wantedOrg.y = frame.y + wanted.y*scale;
-					//caughtOrg.x = frame.x + caught.x*scale;
-					//caughtOrg.y = frame.y + caught.y*scale;
-					//
-					////VS_Rectangle(PREV_ORIGIN_IMG, wantedOrg.x, wantedOrg.y, wantedOrg.x + wantedSize * scale, wantedOrg.y + wantedSize * scale, VS_RED, VS_NULL_COLOR);
-					//VS_Rectangle(CURR_ORIGIN_IMG, caughtOrg.x, caughtOrg.y, caughtOrg.x + wantedSize * scale, caughtOrg.y + wantedSize * scale, VS_GREEN, VS_NULL_COLOR);
-					//VS_Rectangle(PREV_IMG8, wanted.x, wanted.y, wanted.x + wantedSize, wanted.y + wantedSize, VS_RED, VS_NULL_COLOR);
-					//VS_Rectangle(CURR_IMG8, caught.x, caught.y, caught.x + wantedSize, caught.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
-					//
-
-					//dimToOrg(caught.x, caught.y, caughtOrg.x, caughtOrg.y, dim, orgSize, cropFactor);
-					//dimToOrg(caught.x + wantedSize, caught.y + wantedSize, caughtOrg.xX, caughtOrg.yY, dim, orgSize, cropFactor);
-					//
-					//dimToOrg(wanted.x, wanted.y, wantedOrg.x, wantedOrg.y, dim, orgSize, cropFactor);
-					//dimToOrg(wanted.x + wantedSize, wanted.y + wantedSize, wantedOrg.xX, wantedOrg.yY, dim, orgSize, cropFactor);
-
-
-
-					//VS_Rectangle(PREV_ORIGIN_IMG, wantedOrg.x - 1, wantedOrg.y - 1, wantedOrg.xX, wantedOrg.yY, VS_RED, VS_NULL_COLOR);
-					//VS_Rectangle(CURR_ORIGIN_IMG, caughtOrg.x - 1, caughtOrg.y - 1, caughtOrg.xX, caughtOrg.yY, VS_GREEN, VS_NULL_COLOR);
-					//
-					//VS_Rectangle(PREV_IMG8, wanted.x, wanted.y, wanted.x + wantedSize, wanted.y + wantedSize, VS_RED, VS_NULL_COLOR);
-					//VS_Rectangle(CURR_IMG8, caught.x - 1, caught.y - 1, caught.x + wantedSize, caught.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
-					//
-					//VS_Rectangle(PREV_IMG_FC, wanted.x, wanted.y, wanted.x + wantedSize, wanted.y + wantedSize, VS_RED, VS_NULL_COLOR);
-					//VS_Rectangle(CURR_IMG_FC, caught.x - 1, caught.y - 1, caught.x + wantedSize, caught.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
 				}
 			}
-			//printf("currFFT_fcr:\n");
-			//dump_32f("%.1f ", (float*)currFFT_fcr, 8, 16, dim * 2, 1);
-			//printf("wantedFFT_fcr:\n");
-			//dump_32f("%.1f ", (float*)wantedFFT_fcr, 8, 16, dim * 2, 1);
-			//printf("productFFT_fcr:\n");
-			//dump_32f("%.1f ", (float*)productFFT_fcr, 8, 16, dim * 2, 1);
-			//printf("productIFFT_fcr:\n");
-			//dump_32f("%.1f ", (float*)productIFFT_fcr, 8, 16, dim * 2, 1);
-
-
 		}
 
 		//caught= caught0 ;
 		//VS_Rectangle(PREV_ORIGIN_IMG, prevFrame.x , prevFrame.y , prevFrame.x + DIM*scale, prevFrame.y + DIM*scale, VS_BLUE, VS_NULL_COLOR);
-		VS_Rectangle(PREV_ORIGIN_IMG, currFrame.x , currFrame.y , currFrame.x + DIM*scale, currFrame.y + DIM*scale, VS_BLUE, VS_NULL_COLOR);
-		VS_Rectangle(CURR_ORIGIN_IMG, currFrame.x , currFrame.y , currFrame.x + DIM*scale, currFrame.y + DIM*scale, VS_BLUE, VS_NULL_COLOR);
 		
 		
 		//_ASSERTE(caught.x >= 0);
@@ -750,12 +622,13 @@ int main()
 		caughtOrgNM.x = currFrame.x + caughtNM.x*scale;
 		caughtOrgNM.y = currFrame.y + caughtNM.y*scale;
 
+
 		_ASSERTE(caughtOrg.x >= 0);
 		_ASSERTE(caughtOrg.y >= 0);
 		_ASSERTE(caughtOrg.x < WIDTH);
 		_ASSERTE(caughtOrg.y < HEIGHT);
+		
 
-		VS_Rectangle(PREV_ORIGIN_IMG, wantedOrg.x , wantedOrg.y , wantedOrg.x + wantedSize * scale , wantedOrg.y + wantedSize * scale, VS_RED, VS_NULL_COLOR);
 		VS_Rectangle(CURR_ORIGIN_IMG, caughtOrg.x , caughtOrg.y , caughtOrg.x + wantedSize * scale,  caughtOrg.y + wantedSize * scale, VS_GREEN, VS_NULL_COLOR);
 		VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgNM.x , caughtOrgNM.y , caughtOrgNM.x + wantedSize * scale,  caughtOrgNM.y + wantedSize * scale, VS_YELLOW, VS_NULL_COLOR);
 		//VS_Rectangle(PREV_IMG8, wanted.x, wanted.y, wanted.x + wantedSize, wanted.y + wantedSize, VS_RED, VS_NULL_COLOR);
@@ -763,7 +636,8 @@ int main()
 		
 		//VS_Rectangle(IFFT_IMG, caught.x-1, caught.y-1, caught.x + wantedSize, caught.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
 		//VS_Rectangle(CURR_IMG_FC, caught.x-1, caught.y-1, caught.x + wantedSize, caught.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
-		VS_Text("dx:%d dy:%d\r\n", caught.x- wanted.x, caught.y- wanted.y);
+		VS_Text("NM wx:%d wy%d -> cx:%d cy:%d dx:%d dy:%d\r\n", wantedOrg.x, wantedOrg.y, caughtOrgNM.x, caughtOrgNM.y, caughtOrgNM.x - caughtOrgNM.x, caughtOrgNM.y - wantedOrg.y);
+		VS_Text("PC wx:%d wy%d -> cx:%d cy:%d dx:%d dy:%d\r\n", wantedOrg.x, wantedOrg.y, caughtOrg.x, caughtOrg.y, caughtOrg.x - caughtOrgNM.x, caughtOrg.y - wantedOrg.y);
 		VS_Draw(VS_DRAW_ALL);
 	}
 }
@@ -808,3 +682,13 @@ int main()
 	//	//VS_SetData(444, currImage32s);
 	//	//VS_SetData(444, wantImage32s);
 	//	VS_SetData(444, hadConv32s);
+
+			//printf("currFFT_fcr:\n");
+			//dump_32f("%.1f ", (float*)currFFT_fcr, 8, 16, dim * 2, 1);
+			//printf("wantedFFT_fcr:\n");
+			//dump_32f("%.1f ", (float*)wantedFFT_fcr, 8, 16, dim * 2, 1);
+			//printf("productFFT_fcr:\n");
+			//dump_32f("%.1f ", (float*)productFFT_fcr, 8, 16, dim * 2, 1);
+			//printf("productIFFT_fcr:\n");
+			//dump_32f("%.1f ", (float*)productIFFT_fcr, 8, 16, dim * 2, 1);
+
