@@ -163,7 +163,8 @@ int* toLocal0(void* addr) {
 		return (int*)addr - 0x40000;
 	return (int*)addr;
 }
-
+//#define VS_SAVE_IMAGE(a,b,c,d,e) vsSaveImage(a,b,c,d,e)
+#define VS_SAVE_IMAGE(a,b,c,d,e) 
 int main()
 {
 
@@ -273,7 +274,8 @@ int main()
 			//dump_32s("%d ", (int*)in, 16, 16, 128, 1);
 			//printf("--32f--\n");
 			//dump_32f("%.0f ", (float*)FFT0_fcr, 16, 32, 256, 1);
-			
+			VS_SAVE_IMAGE("../back/nmInFFT0.vsimg", FFT0_fcr, DIM, DIM, VS_RGB32FC);
+
 			ring_nm1_to_nm0_diff.tail += DIM * DIM;
 			for (int i = 0; i < DIM; i++) {
 				nmppsFFT128Fwd_32fcr(FFT0_fcr + i * DIM, 1, tmpFFT_fcr + i, DIM, &specFwd);
@@ -292,6 +294,7 @@ int main()
 			//dump_32s("%d ", (int*)in, 16, 16, 128, 1);
 			//printf("--32f--\n");
 			nmppsConvert_32s32fcr(in, FFT1_fcr, DIM*DIM );
+			VS_SAVE_IMAGE("../back/nmInFFT1.vsimg", FFT1_fcr, DIM, DIM, VS_RGB32FC);
 			//dump_32f("%.0f ",(float*) FFT1_fcr, 16, 32, 256, 1);
 			ring_nm1_to_nm0_diff.tail+=DIM*DIM;
 			for (int i = 0; i < DIM; i++) {
@@ -305,6 +308,8 @@ int main()
 		else if (cmd.command == DO_CORR) {
 
 			nmppsConjMul_32fcr( FFT1_fcr, FFT0_fcr, tmpFFT_fcr, DIM*DIM);
+			VS_SAVE_IMAGE("../back/nmProfuctFFT.vsimg", tmpFFT_fcr, DIM, DIM, VS_RGB32FC);
+
 			//----------- inverse fft-------------- 
 			for (int i = 0; i < DIM; i++) {
 				nmppsFFT128Inv_32fcr(tmpFFT_fcr + i * DIM, 1, FFT1_fcr + i, DIM, &specInv);
@@ -331,7 +336,7 @@ int main()
 			//	}
 			//}
 			//
-			vsSaveImage("product.img",)
+			VS_SAVE_IMAGE("nmIFFT.vsimg", tmpFFT_fcr, DIM, DIM, VS_RGB32FC);
 			//float max = 0;
 			int idx = nmblas_isamax(DIM*DIM * 2, (const float*)tmpFFT_fcr, 1);
 			caught.y = idx >> 8;
