@@ -305,27 +305,27 @@ int main()
 			
 			float max = 0;
 			//float* temp32f = (float*)tmpFFT_fcr;
-			for (int i = 0; i < DIM; i++) {
-				for (int j = 0; j < DIM; j++) {
-					//if (max < productIFFT_fc[i*dim + j].re) {
-					//	max = productIFFT_fc[i*dim + j].re;
-					//float abs= 
-					float re = tmpFFT_fcr[i*DIM + j].re;
-					//float im = tmpFFT_fcr[i*dim + j].im;
-					//float abs = re * re + im * im;
-			
-					//productAbs32f[i*dim + j] = abs;
-					//temp32f[i*DIM + j] = re;
-			
-					if (max < re) {
-						max = re;
-						caught.y = i;
-						caught.x = j;
-					}
-					
-			
-				}
-			}
+			//for (int i = 0; i < DIM; i++) {
+			//	for (int j = 0; j < DIM; j++) {
+			//		//if (max < productIFFT_fc[i*dim + j].re) {
+			//		//	max = productIFFT_fc[i*dim + j].re;
+			//		//float abs= 
+			//		float re = tmpFFT_fcr[i*DIM + j].re;
+			//		//float im = tmpFFT_fcr[i*dim + j].im;
+			//		//float abs = re * re + im * im;
+			//
+			//		//productAbs32f[i*dim + j] = abs;
+			//		//temp32f[i*DIM + j] = re;
+			//
+			//		if (max < re) {
+			//			max = re;
+			//			caught.y = i;
+			//			caught.x = j;
+			//		}
+			//		
+			//
+			//	}
+			//}
 			//dump_32f("%.3f ", (nm32f*)tmpFFT_fcr, 14, 14, DIM * 2, 0);
 			//printf("---\n");
 			//dump_32f("%.2e ", (nm32f*)tmpFFT_fcr, 14, 14, DIM * 2, 0);
@@ -337,13 +337,13 @@ int main()
 			
 			int idx = nmblas_isamax(DIM*DIM * 2, (const float*)tmpFFT_fcr, 1);
 			NmppPoint c2;
-			c2.y = idx >> 8;
-			c2.x = (idx % 256) >> 1;
-			if (c2.y != caught.y || c2.x != caught.x)
-				printf("ERROR %d %d %d %d\n", c2.x, c2.y, caught.x, caught.y);
+			caught.y = idx >> 8;
+			caught.x = (idx % 256) >> 1;
+			//if (c2.y != caught.y || c2.x != caught.x)
+			//	printf("ERROR %d %d %d %d\n", c2.x, c2.y, caught.x, caught.y);
 			
 			dtpSend(rbTo86, &caught, sizeof32(caught));
-			dtpSend(rbTo86, &max, sizeof32(max));
+			//dtpSend(rbTo86, &max, sizeof32(max)); bug
 			
 		}
 		else {

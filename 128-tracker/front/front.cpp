@@ -383,7 +383,7 @@ int main()
 			VS_GetData(VS_SOURCE, currOriginC);
 			VS_GetGrayData(VS_SOURCE, currOrigin8u);
 
-			//if (loadBlur) 
+			if (loadBlur) 
 			{
 				nmppsSubC_8s((nm8s*)currOrigin8u, 127, currFullImage8s, WIDTH*HEIGHT);
 				nmppiFilter_8s32s(currFullImage8s, tempFull32s, WIDTH, HEIGHT, blurKernel);
@@ -419,7 +419,7 @@ int main()
 		VS_Rectangle(CURR_ORIGIN_IMG, currFrame.x, currFrame.y, currFrame.x + DIM * scale, currFrame.y + DIM * scale, VS_BLUE, VS_NULL_COLOR);
 		VS_Rectangle(PREV_ORIGIN_IMG, wantedOrg.x, wantedOrg.y, wantedOrg.x + wantedSize * scale, wantedOrg.y + wantedSize * scale, VS_RED, VS_NULL_COLOR);
 
-		//if (loadBlur)
+		if (loadBlur)
 		{
 
 			// ------------------- wanted preparation --------------
@@ -621,7 +621,7 @@ int main()
 			// take profit :
 			dtpRecv(drOut, &caughtNM, sizeof32(caughtNM));
 			
-			dtpRecv(drOut, &maxNM, sizeof32(maxNM));
+			//dtpRecv(drOut, &maxNM, sizeof32(maxNM)); bug
 			caughtOrgNM.x = currFrame.x + caughtNM.x*scale;
 			caughtOrgNM.y = currFrame.y + caughtNM.y*scale;
 			//caughtOrg = caughtOrgNM;
@@ -629,7 +629,7 @@ int main()
 		}
 		VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgNM.x, caughtOrgNM.y, caughtOrgNM.x + wantedSize * scale, caughtOrgNM.y + wantedSize * scale, VS_YELLOW, VS_NULL_COLOR);
 		VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgPC.x, caughtOrgPC.y, caughtOrgPC.x + wantedSize * scale, caughtOrgPC.y + wantedSize * scale, VS_GREEN, VS_NULL_COLOR);
-		caughtOrg = caughtOrgPC;
+		caughtOrg = caughtOrgNM;
 		//VS_Text("pc:%f nm:%f \r\n",maxPC , maxNM);
 //*************************************************************************************
 //*************************************************************************************
