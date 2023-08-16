@@ -45,6 +45,12 @@ struct Cmd_nm1_to_nm0{
 	unsigned command;
 } ;
 
+#ifndef __NM__
+#define NmppSize IppiSize
+#define NmppRect IppiRect
+#endif
+
+
 struct Cmd_x86_to_nm1{
 	unsigned counter;
 	unsigned command;

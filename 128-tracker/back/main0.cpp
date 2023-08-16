@@ -78,7 +78,7 @@ __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm1_to_n
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm0_to_nm1_corr;
 
 __attribute__((section(".data.shmem0"))) int data_x86_to_nm1_cmd[16 * 16 ]; //sizeof32(Cmd_x86_to_nm1)
-__attribute__((section(".data.emi")))    int data_x86_to_nm1_img[256 * 256 * 256 / 4];
+__attribute__((section(".data.emi")))    int data_x86_to_nm1_img[512 * 256 * 256 / 4];
 __attribute__((section(".data.emi")))    int data_nm1_to_x86_out[2 * DIM*DIM * 2]; // declared on nm1 
 __attribute__((section(".data.shmem0"))) int data_nm1_to_nm0_cmd[16 * sizeof(Cmd_nm1_to_nm0)];
 __attribute__((section(".data.imu6")))   int data_nm1_to_nm0_diff[2 * DIM*DIM];

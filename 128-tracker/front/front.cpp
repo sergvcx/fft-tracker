@@ -39,6 +39,10 @@ void swap(void** ptr0, void** ptr1) {
 	*ptr0 = tmp;
 }
 
+extern "C" {
+	void mdelay(int d);
+}
+
 //resize(prevOrigin8u + prevFrame.y*WIDTH + prevFrame.x, srcRoiSize, WIDTH, prevImage8u, dimRoiSize, DIM);
 //resize(currOrigin8u + currFrame.y*WIDTH + currFrame.x, srcRoiSize, WIDTH, currImage8u, dimRoiSize, DIM);
 
@@ -97,6 +101,10 @@ extern "C" {
 
 	}
 }
+//##########################################################
+//###############            main        ###################
+//##########################################################
+
 int main()
 {
 	int file_desc = 0;
@@ -112,7 +120,7 @@ int main()
 	int toNM1;
 	int dwImg;
 	int drOut;
-	bool MC12101 = true;
+#define MC12101 true
 	if (MC12101) {
 		toNM1 = dtpOpenMc12101Ringbuffer(0, 1, ring_addr[0]);
 		dwImg = dtpOpenMc12101Ringbuffer(0, 1, ring_addr[1]);
@@ -153,8 +161,11 @@ int main()
 	int WIDTH = VS_GetWidth(VS_SOURCE);
 	int HEIGHT = VS_GetHeight(VS_SOURCE);
 	int fullSize32 = WIDTH * HEIGHT / 4;
+#define NmppSize IppiSize
+#define NmppRect IppiRect
 	NmppSize frmFullDim = { WIDTH,HEIGHT };
 	NmppRect frmFullRoi = { 0,0,WIDTH,HEIGHT };
+	
 
 	nm32u	*currOriginC = nmppsMalloc_32u(WIDTH*HEIGHT);
 	nm32u	*prevOriginC = nmppsMalloc_32u(WIDTH*HEIGHT);
@@ -169,20 +180,20 @@ int main()
 	//int height = DIM;
 
 	int size = DIM * DIM;
-	Ipp32fc *currImage_fc = (Ipp32fc *)ippMalloc(3 * size * sizeof(Ipp32fc));
-	nm32fcr *currImage_fcr = (nm32fcr *)malloc32(size * sizeof32(nm32fcr));
-	Ipp32fc *prevImage_fc = (Ipp32fc *)ippMalloc(3 * size * sizeof(Ipp32fc));
-	nm32fcr *prevImage_fcr = (nm32fcr *)malloc32(size * sizeof32(nm32fcr));
+	Ipp32fc *currImage_fc = (Ipp32fc *)ippMalloc(3 * WIDTH*HEIGHT * sizeof(Ipp32fc));
+	nm32fcr *currImage_fcr = (nm32fcr *)malloc32(WIDTH*HEIGHT * sizeof32(nm32fcr));
+	Ipp32fc *prevImage_fc = (Ipp32fc *)ippMalloc(3 * WIDTH*HEIGHT * sizeof(Ipp32fc));
+	nm32fcr *prevImage_fcr = (nm32fcr *)malloc32(WIDTH*HEIGHT * sizeof32(nm32fcr));
 
 	//Ipp32fc *currFFT_fc = (Ipp32fc *)ippMalloc(3 * size * sizeof(Ipp32fc));
-	nm32fcr *currFFT_fcr = (nm32fcr *)malloc32(size * sizeof32(nm32fcr));
+	nm32fcr *currFFT_fcr = (nm32fcr *)malloc32(DIM*DIM * sizeof32(nm32fcr));
 	
-	Ipp32fc *wantedImage_fc = (Ipp32fc *)ippMalloc(3 * size * sizeof(Ipp32fc));
-	nm32fcr *wantedImage_fcr = (nm32fcr *)malloc32(size * sizeof32(nm32fcr));
-	nm8s    *wantedImage8s = nmppsMalloc_8s(size);
-	nm8u    *wantedImage8u = nmppsMalloc_8u(size);
-	Ipp32fc *wantedFFT_fc = (Ipp32fc *)ippMalloc(3 * size * sizeof(Ipp32fc));
-	nm32fcr *wantedFFT_fcr = (nm32fcr *)malloc32(size * sizeof32(nm32fcr));
+	//Ipp32fc *wantedImage_fc = (Ipp32fc *)ippMalloc(DIM*DIM* sizeof(Ipp32fc));
+	nm32fcr *wantedImage_fcr = (nm32fcr *)malloc32(DIM*DIM* sizeof32(nm32fcr));
+	nm8s    *wantedImage8s = nmppsMalloc_8s(DIM*DIM);
+	nm8u    *wantedImage8u = nmppsMalloc_8u(DIM*DIM);
+	//Ipp32fc *wantedFFT_fc = (Ipp32fc *)ippMalloc(3 * DIM*DIM sizeof(Ipp32fc));
+	nm32fcr *wantedFFT_fcr = (nm32fcr *)malloc32(DIM*DIM * sizeof32(nm32fcr));
 
 	//nm32fc  *tmpFFT_fc = (nm32fc *)ippMalloc(3 * size * sizeof(nm32fcr));
 	nm32fcr *tmpFFT_fcr = (nm32fcr *)malloc32(size * sizeof32(nm32fcr));
@@ -220,6 +231,8 @@ int main()
 	nm8s	*prevFullBlur8s = nmppsMalloc_8s(WIDTH * HEIGHT);
 
 	nm32s   *tempFull32s    = nmppsMalloc_32s(WIDTH * HEIGHT);
+	nm8s    *tempFull8s    = nmppsMalloc_8s(WIDTH * HEIGHT);
+	nm8s    *temp2Full8s    = nmppsMalloc_8s(WIDTH * HEIGHT);
 	float	*tmp = nmppsMalloc_32f(3 * size);
 	float	*tmp2 = nmppsMalloc_32f(3 * size);
 	Ipp8u	*blurImage = (Ipp8u*)ippMalloc(3 * size);
@@ -234,7 +247,18 @@ int main()
 		//st = ippiFFTInitAlloc_C_32fc(&spec, LOG2DIM, LOG2DIM, IPP_FFT_DIV_INV_BY_N, ippAlgHintNone);
 
 		S_VS_MouseStatus MouseStatus;
-		//VS_CreateSlider("width", 0, 0.1, 1, 0.01, 1);
+		
+//#define RADIO_USE
+		//VS_CreateRadioGroup("use",RADIO_USE,3,useLabel,) VS_CreateCheckBox
+#define CHECK_IPP 0
+#define CHECK_TRACK_X64 1
+#define CHECK_TRACK_NMC 2 
+#define CHECK_TRACK_CACHE 3
+		VS_CreateCheckBox("Use IPP", CHECK_IPP, true);
+		VS_CreateCheckBox("Track by X64", CHECK_TRACK_X64, true);
+		VS_CreateCheckBox("Track by NMC", CHECK_TRACK_NMC, true);
+		VS_CreateCheckBox("run in cache", CHECK_TRACK_CACHE, false);
+
 #define SLIDER_WANTED_SIZE 1		
 		VS_CreateSlider("wantedSize", SLIDER_WANTED_SIZE, 8, DIM, 8, 24);
 		VS_CreateSlider("blurSize", 2, 1, 255, 1, 11);
@@ -302,6 +326,7 @@ int main()
 		blurWeights[i] = -1;
 	int blurSize = 15;
 
+
 	blurWeights[blurSize*blurSize / 2] = blurSize * blurSize - 1;
 	int blurKernelSize = nmppiGetFilterKernelSize32_8s32s(blurSize, blurSize);
 	nm64s* blurKernel = (nm64s*)nmppsMalloc_32s(blurKernelSize);
@@ -331,18 +356,18 @@ int main()
 	}
 	VS_OpRunForward();
 	int startFrame = 200;
-	int stopFrame  = startFrame+128;
+	int stopFrame  = startFrame+500;
 	VS_Seek(startFrame-1);
 	int wantedOrgOffsetX = 0;
 	int fr = VS_GetSrcFrameNum();
-	//======================================================================
-	//======================================================================
-	//======================================================================
-	//======================================================================
+	//######################################################################
+	//####################        VS_Run    ################################
+	//######################################################################
 	bool loadBlur = true;
-	float maxPC;
 	while (int status=VS_Run()) {
 		int fr = VS_GetSrcFrameNum();
+		if (VS_GetCheckBox(CHECK_TRACK_CACHE))
+			stopFrame = fr;
 		// ----------------------------- SLIDER HANDLING ----------------------------
 		float scale = VS_GetSlider(SLIDER_SCALE);
 		//IppiSize srcRoiSize = { DIM*scale,DIM*scale };
@@ -383,12 +408,20 @@ int main()
 			VS_GetData(VS_SOURCE, currOriginC);
 			VS_GetGrayData(VS_SOURCE, currOrigin8u);
 
-			if (loadBlur) 
+			if (VS_GetCheckBox(CHECK_TRACK_X64) || (VS_GetCheckBox(CHECK_TRACK_NMC) && !VS_GetCheckBox(CHECK_TRACK_CACHE)) ) 
 			{
-				nmppsSubC_8s((nm8s*)currOrigin8u, 127, currFullImage8s, WIDTH*HEIGHT);
-				nmppiFilter_8s32s(currFullImage8s, tempFull32s, WIDTH, HEIGHT, blurKernel);
-				nmppsRShiftC_32s(tempFull32s, 8, tempFull32s, WIDTH*HEIGHT);
-				nmppsConvert_32s8s(tempFull32s, currFullBlur8s, WIDTH*HEIGHT);
+				if (VS_GetCheckBox(CHECK_IPP)) {
+					ippiFilterBox_8u_C1R((Ipp8u*)currOrigin8u, WIDTH, (Ipp8u*)currFullBlur8s, WIDTH, frmFullDim, { blurSize, blurSize }, { blurSize / 2, blurSize / 2 });
+					nmppsRShiftC_8u((nm8u*)currFullBlur8s, 1, (nm8u*)currFullBlur8s, WIDTH*HEIGHT);
+					nmppsRShiftC_8u(currOrigin8u, 1, (nm8u*)tempFull8s, WIDTH*HEIGHT);
+					nmppsSub_8s(currFullBlur8s, tempFull8s, currFullBlur8s, WIDTH*HEIGHT);
+				}
+				else {
+					nmppsSubC_8s((nm8s*)currOrigin8u, 127, currFullImage8s, WIDTH*HEIGHT);
+					nmppiFilter_8s32s(currFullImage8s, tempFull32s, WIDTH, HEIGHT, blurKernel);
+					nmppsRShiftC_32s(tempFull32s, 8, tempFull32s, WIDTH*HEIGHT);
+					nmppsConvert_32s8s(tempFull32s, currFullBlur8s, WIDTH*HEIGHT);
+				}
 			}
 			
 			if (VS_GetSrcFrameNum() == startFrame) {
@@ -410,23 +443,22 @@ int main()
 		}
 
 		//ippiSuperSampling_8u_C1R(currOrigin8u, WIDTH, srcRoiSize, currOrigin8u, dim, dimRoiSize, buffer);
-		VS_SetData(PREV_IMG8, prevImage8u);
-		VS_SetData(CURR_IMG8, currImage8u);
+		//VS_SetData(PREV_IMG8, prevImage8u);
+		//VS_SetData(CURR_IMG8, currImage8u);
 		VS_SetData(PREV_ORG_BLUR_8S, prevFullBlur8s);
 		VS_SetData(CURR_ORG_BLUR_8S, currFullBlur8s);
 
 		VS_Rectangle(PREV_ORIGIN_IMG, currFrame.x, currFrame.y, currFrame.x + DIM * scale, currFrame.y + DIM * scale, VS_BLUE, VS_NULL_COLOR);
 		VS_Rectangle(CURR_ORIGIN_IMG, currFrame.x, currFrame.y, currFrame.x + DIM * scale, currFrame.y + DIM * scale, VS_BLUE, VS_NULL_COLOR);
 		VS_Rectangle(PREV_ORIGIN_IMG, wantedOrg.x, wantedOrg.y, wantedOrg.x + wantedSize * scale, wantedOrg.y + wantedSize * scale, VS_RED, VS_NULL_COLOR);
-
-		if (loadBlur)
+		//########################################################################
+		//#####################         track X64      ###########################
+		//########################################################################
+		float maxPC = 0;
+		if (VS_GetCheckBox(CHECK_TRACK_X64))
 		{
 
 			// ------------------- wanted preparation --------------
-			//ippiFilterBox_8u_C1R((Ipp8u*)prevImage8u, width, prevBlur8u, width, dimRoiSize, { blurSize, blurSize }, { blurSize / 2, blurSize / 2 });
-		
-
-
 			//VS_SetData(PREV_BLUR, prevBlur8u);
 			//ippiFilterBox_8u_C1R((Ipp8u*)prevImage8u, width, blurImage, width, s, { blurSize, blurSize }, { blurSize / 2, blurSize / 2 });
 			//sobel(prevImage8u, blurImage, width, height);
@@ -577,23 +609,27 @@ int main()
 			}
 			caughtOrgPC.x = currFrame.x + caughtPC.x;
 			caughtOrgPC.y = currFrame.y + caughtPC.y;
-			//caughtOrg = caughtOrgPC;
+			caughtOrg = caughtOrgPC;
 		}
 		
-//*************************************************************************************
-//*************************************************************************************
-//*************************************************************************************
-		float maxNM;
+		//########################################################################
+		//#####################         track NMC      ###########################
+		//########################################################################
+		float maxNM=0;
 		
-		if (MC12101) {
+		if (MC12101  && VS_GetCheckBox(CHECK_TRACK_NMC)) {
 
 			int currFrameNum = VS_GetSrcFrameNum();
 	
 			if (!(status&VS_PAUSE)) 
 			if (loadBlur) {
+				static int cnt = 0;
+				static int sz = 0;
+				printf("[...%d %d ",cnt++,sz+=WIDTH*HEIGHT/4);
 				dtpSend(dwImg, currFullBlur8s, fullSize32);
 				if (currFrameNum == startFrame)
 					dtpSend(dwImg, currFullBlur8s, fullSize32);
+				printf("...]\n");
 			}
 
 			if (currFrameNum >= stopFrame) {
@@ -622,18 +658,20 @@ int main()
 			dtpRecv(drOut, &caughtNM, sizeof32(caughtNM));
 			
 			//dtpRecv(drOut, &maxNM, sizeof32(maxNM)); bug
-			caughtOrgNM.x = currFrame.x + caughtNM.x*scale;
-			caughtOrgNM.y = currFrame.y + caughtNM.y*scale;
-			//caughtOrg = caughtOrgNM;
-
+			caughtOrgNM.x = currFrame.x + caughtNM.x;
+			caughtOrgNM.y = currFrame.y + caughtNM.y;
 		}
-		VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgNM.x, caughtOrgNM.y, caughtOrgNM.x + wantedSize * scale, caughtOrgNM.y + wantedSize * scale, VS_YELLOW, VS_NULL_COLOR);
-		VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgPC.x, caughtOrgPC.y, caughtOrgPC.x + wantedSize * scale, caughtOrgPC.y + wantedSize * scale, VS_GREEN, VS_NULL_COLOR);
-		caughtOrg = caughtOrgNM;
-		//VS_Text("pc:%f nm:%f \r\n",maxPC , maxNM);
-//*************************************************************************************
-//*************************************************************************************
-//*************************************************************************************
+		
+		if (VS_GetCheckBox(CHECK_TRACK_NMC)) {
+			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgNM.x + 1, caughtOrgNM.y + 1, caughtOrgNM.x + wantedSize - 2, caughtOrgNM.y + wantedSize - 2, VS_YELLOW, VS_NULL_COLOR);
+			caughtOrg = caughtOrgNM;
+			VS_Text("NM cx:%d cy:%d max:%f\r\n",caughtNM.x, caughtNM.y,maxNM);
+		}
+		if (VS_GetCheckBox(CHECK_TRACK_X64)) {
+			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgPC.x, caughtOrgPC.y, caughtOrgPC.x + wantedSize, caughtOrgPC.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
+			caughtOrg = caughtOrgPC;
+			VS_Text("PC cx:%d cy:%d max:%f\r\n",caughtPC.x, caughtPC.y,maxPC);
+		}
 
 		_ASSERTE(caughtOrg.x >= 0);
 		_ASSERTE(caughtOrg.y >= 0);
@@ -647,9 +685,7 @@ int main()
 		//VS_Rectangle(CURR_IMG_FC, caught.x-1, caught.y-1, caught.x + wantedSize, caught.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
 		//VS_Text("NM wx:%d wy:%d -> cx:%d cy:%d dx:%d dy:%d\r\n", wantedOrg.x, wantedOrg.y, caughtOrgNM.x, caughtOrgNM.y, caughtOrgNM.x - caughtOrgNM.x, caughtOrgNM.y - wantedOrg.y);
 		//VS_Text("PC wx:%d wy:%d -> cx:%d cy:%d dx:%d dy:%d\r\n", wantedOrg.x, wantedOrg.y, caughtOrgPC.x, caughtOrgPC.y, caughtOrgPC.x - caughtOrgNM.x, caughtOrg.y - wantedOrg.y);
-		VS_Text("NM wx:%d wy:%d \r\n",caughtNM.x, caughtNM.y);
-		VS_Text("PC wx:%d wy:%d \r\n",caughtPC.x, caughtPC.y);
-
+		//VS_Text("pc:%f nm:%f \r\n",maxPC , maxNM);
 		VS_Draw(VS_DRAW_ALL);
 	}
 }

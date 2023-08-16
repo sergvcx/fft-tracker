@@ -48,15 +48,15 @@ static void* memCopyPush(const void *src, void *dst, unsigned int size32) {
 	return 0;
 }
 
-//extern "C" {
-//void halSleep(int);
+extern "C" {
+	void mdelay(int);
 
-	//}
+};
 //}
 
-#define VS_SAVE_IMAGE 
+#define VS_SAVE_IMAGE
 //vsSaveImage
-#define PRITN printf
+#define PRINT printf
 
 #define FILE "../exchange.bin"
 int blurWeights[16 * 16];
@@ -85,8 +85,8 @@ int main(){
 	for (int i = 0; i < 6; i++)
 		printf("%d: ring:%08x data:%08x size:%8d id:%08x\n", i, (int)ring[i], (int)ring[i]->data, ring[i]->size, ring[i]->bufferId);
 	
+	halEnbExtInt();
 	halDmaInit();
-	//halEnbExtInt();
 
 
 
@@ -156,32 +156,45 @@ int main(){
 			while (cmdIn.frmIndex >= ring_x86_to_nm1_img->head ) {
 				printf("ring_x86_to_nm1_img: head:%d tail:%d\n", ring_x86_to_nm1_img->head, ring_x86_to_nm1_img->tail);
 			}
+
 			int *roi = ring_x86_to_nm1_img->data +cmdIn.frmIndex*imgSize32 + cmdIn.frmRoi.y*imgDim.width / 4 + cmdIn.frmRoi.x / 4;
+
 			nm8s* blurRoi8s = (nm8s*)ringBufferLo;
 			if (cmdIn.command == DO_FFT0)
 				nmppsSet_8s(0, blurRoi8s, DIM*DIM);
-			//halDma2D_Start(roi, blurRoi8s, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM/4);
-			//while (!halDmaIsCompleted());
+			halDma2D_Start(roi, blurRoi8s, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM/4);
+			//mdelay(10);
+			while (!halDmaIsCompleted()) {
+				printf(".");
+			};
+			
+			if (cmdIn.command == DO_FFT0)
+				nmppsSet_8s(0, (nm8s*)ringBufferHi, DIM*DIM);
+
 			nm8s* src = (nm8s*)roi;
-			nm8s* dst = blurRoi8s;
+			nm8s* dst = (nm8s*)ringBufferHi;
 			for (int y = 0; y < cmdIn.frmRoi.height; y++) {
 				memcpy(dst, src, cmdIn.frmRoi.width/ 4);
 				src = nmppsAddr_8s(src, cmdIn.frmSize.width);
 				dst = nmppsAddr_8s(dst, DIM);
 			}
+			for (int i = 0; i < DIM*DIM; i++) {
+				if (ringBufferHi[i] != ringBufferLo[i])
+					printf("DMA error: dma[%d]=%08x mcpy[%d]=08%x\n", i, ringBufferLo[i], i, ringBufferHi[i]);
+			}
 			
 
 			
-			if (cmdIn.command == DO_FFT0 )	
-				VS_SAVE_IMAGE("1_FFT0_8s.vsimg", blurRoi8s, DIM, DIM, VS_RGB8_8);
-			else				
-				VS_SAVE_IMAGE("1_FFT1_8s.vsimg", blurRoi8s, DIM, DIM, VS_RGB8_8);
+			//if (cmdIn.command == DO_FFT0 )	
+			//	VS_SAVE_IMAGE("1_FFT0_8s.vsimg", blurRoi8s, DIM, DIM, VS_RGB8_8);
+			//else				
+			//	VS_SAVE_IMAGE("1_FFT1_8s.vsimg", blurRoi8s, DIM, DIM, VS_RGB8_8);
 			int *tail=ring_x86_to_nm1_img->ptrTail();
 			//memcpy(ringBufferLo, roi, DIM*DIM / 4);
 			//printf("%x %x %d\n", roi, tail, cmdIn.frmIndex);
 			
 			//dtpRecv(rbImg, ringBufferLo, DIM*DIM/4);
-			PRINT("in: recv ok\n");
+			//PRINT("in: recv ok\n");
 
 			//ring_x86_to_nm1_img->tail+=DIM*DIM/4;
 			//nm8u* img8u= (nm8u*)ringBufferLo;

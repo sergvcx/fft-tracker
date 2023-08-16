@@ -17,7 +17,7 @@ LDFLAGS  = -Wl,-Map=test0.map  -Wl,-Tmc12101-nmpu0.lds
 LDFLAGSD = -Wl,-Map=test0d.map -Wl,-Tmc12101-nmpu0.lds 
 INC_DIRS = -I"$(MC12101)/include" -I../../../include -I.. -I$(DTP)/include -I$(NMPP)/include -I$(HAL)/include -I$(VSHELL)/include
 LIB_DIRS = -L"$(MC12101)/lib"  -L$(DTP)/lib -L$(NMPP)/lib
-SOURCES  = ../../back/main0.cpp ../../back/vsimg.cpp
+SOURCES  = ../../back/main0.cpp 
 
 .DEFAULT_GOAL := all
 
