@@ -101,12 +101,40 @@ extern "C" {
 
 	}
 }
+#define NmppSize IppiSize
+#define NmppRect IppiRect
+
+
 //##########################################################
 //###############            main        ###################
 //##########################################################
+#define LOG2DIM 7
+#define START_FRAME 0
+#define MC12101 1
+#define AVI "..\\..\\..\\Samples\\Road2.avi"
+//#define AVI "../Samples/strike(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\victory22_360x360(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\strike(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\strike256(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\victory22_384x360(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\victory22_384x360(xvid).avi"
+//#define AVI "c:/SU 57 CRAZY SCARY SOUND COMPILATION_(ms video1).avi"
+//#define AVI "../../Samples/SU57(xvid).avi"
+//#define AVI "c:\\vel.avi"
+//#define AVI "c:\\drift.avi"
+//#define AVI "..\\Samples\\MAKS2015_256x256.avi1"
+//#define AVI "..\\Samples\\MAKS2015_256x256.avi1"
+//#define AVI "..\\Samples\\Heli_forest.avi"
+//#define AVI "../../Samples/Su256.avi"
+//#define AVI "..\\Samples\\Formula3.avi"
+//#define AVI "d:\\video\\films\\256x256\\2xFormula2.avi"
 
+#include "hal/ringbuffert.h"
 int main()
 {
+	if (!VS_Init())
+		return 0;
+
 	int file_desc = 0;
 	do {
 		file_desc = dtpOpenFile("../exchange.bin", "rb");
@@ -120,53 +148,30 @@ int main()
 	int toNM1;
 	int dwImg;
 	int drOut;
-#define MC12101 true
 	if (MC12101) {
 		toNM1 = dtpOpenMc12101Ringbuffer(0, 1, ring_addr[0]);
 		dwImg = dtpOpenMc12101Ringbuffer(0, 1, ring_addr[1]);
 		drOut = dtpOpenMc12101Ringbuffer(0, 0, ring_addr[2]);
 	}
-	if (!VS_Init())
-		return 0;
-	//if (!VS_Bind("..\\Samples\\Road1.avi"))
-	//if (!VS_Bind("..\\Samples\\Road2.avi"))
-#ifdef _DEBUG
-	if (!VS_Bind("..\\..\\..\\Samples\\Road2.avi"))
-	//if (!VS_Bind("../Samples/strike(xvid).avi"))
-	//if (!VS_Bind("..\\..\\..\\Samples\\victory22_360x360(xvid).avi"))
-		//if (!VS_Bind("..\\..\\..\\Samples\\strike(xvid).avi"))
-		//if (!VS_Bind("..\\..\\..\\Samples\\strike256(xvid).avi"))
-		//if (!VS_Bind("..\\..\\..\\Samples\\victory22_384x360(xvid).avi"))
-		//if (!VS_Bind("..\\..\\..\\Samples\\victory22_384x360(xvid).avi"))
-
-#else 
-	if (!VS_Bind("..\\Samples\\Road2.avi"))
-#endif
-		return 0;
-	//return 1;
-
-	//if (!VS_Bind("c:/SU 57 CRAZY SCARY SOUND COMPILATION_(ms video1).avi"))
-	//if (!VS_Bind("../../Samples/SU57(xvid).avi"))
 	
-
-	//if (!VS_Bind("c:\\vel.avi"))
-	//if (!VS_Bind("c:\\drift.avi"))
-
-	//if (!VS_Bind("..\\Samples\\MAKS2015_256x256.avi1"))
-	//if (!VS_Bind("..\\Samples\\MAKS2015_256x256.avi1"))
-	//if (!VS_Bind("..\\Samples\\Heli_forest.avi"))
-	//if (!VS_Bind("../../Samples/Su256.avi"))
-	//if (!VS_Bind("..\\Samples\\Formula3.avi"))
-	//if (!VS_Bind("d:\\video\\films\\256x256\\2xFormula2.avi"))
-	int WIDTH = VS_GetWidth(VS_SOURCE);
+	if (!VS_Bind(AVI)) return 1;
+	int WIDTH  = VS_GetWidth(VS_SOURCE);
 	int HEIGHT = VS_GetHeight(VS_SOURCE);
-	int fullSize32 = WIDTH * HEIGHT / 4;
-#define NmppSize IppiSize
-#define NmppRect IppiRect
+	int imgFullSize32 = WIDTH * HEIGHT / 4;
 	NmppSize frmFullDim = { WIDTH,HEIGHT };
 	NmppRect frmFullRoi = { 0,0,WIDTH,HEIGHT };
-	
-
+	Cmd_x86_to_nm1 cmd = { 0,0,0,0 };
+	long long  nmCacheSize32=0x100000;
+	if (MC12101) {
+		cmd.command = 0x64078086;
+		cmd.counter++;
+		cmd.frmIndex = 0;
+		cmd.frmRoi = { 0,0,DIM,DIM };
+		cmd.frmSize = { WIDTH, HEIGHT };
+		dtpSend(toNM1, &cmd, sizeof32(cmd));
+		dtpRecv(drOut, &nmCacheSize32, sizeof32(nmCacheSize32));
+	}
+	nmCacheSize32 = WIDTH * HEIGHT * 8 / 4;
 	nm32u	*currOriginC = nmppsMalloc_32u(WIDTH*HEIGHT);
 	nm32u	*prevOriginC = nmppsMalloc_32u(WIDTH*HEIGHT);
 	nm8u	*prevOrigin8u = nmppsMalloc_8u(WIDTH*HEIGHT);
@@ -174,10 +179,6 @@ int main()
 
 	//IppiFFTSpec_C_32fc *spec;
 	//IppStatus st;
-
-#define LOG2DIM 7
-	//int width = DIM;
-	//int height = DIM;
 
 	int size = DIM * DIM;
 	Ipp32fc *currImage_fc = (Ipp32fc *)ippMalloc(3 * WIDTH*HEIGHT * sizeof(Ipp32fc));
@@ -256,12 +257,18 @@ int main()
 #define CHECK_TRACK_CACHE 3
 		VS_CreateCheckBox("Use IPP", CHECK_IPP, true);
 		VS_CreateCheckBox("Track by X64", CHECK_TRACK_X64, true);
-		VS_CreateCheckBox("Track by NMC", CHECK_TRACK_NMC, true);
-		VS_CreateCheckBox("run in cache", CHECK_TRACK_CACHE, false);
+		VS_CreateCheckBox("Track by NMC", CHECK_TRACK_NMC, MC12101);
+		VS_CreateCheckBox("Loop ", CHECK_TRACK_CACHE, false);
 
+#define SLIDER_START_FRAME 10
+#define SLIDER_CACHE_FRAMES  11
+		int srcFrames = VS_GetSrcFrames();
+		VS_CreateSlider("Start frame", SLIDER_START_FRAME, 0, VS_GetSrcFrames(), 1, START_FRAME);
+		VS_CreateSlider("Cache frames", SLIDER_CACHE_FRAMES,1, nmCacheSize32/imgFullSize32, 1, nmCacheSize32 / imgFullSize32);
 #define SLIDER_WANTED_SIZE 1		
+#define SLIDER_BLUR_SIZE 2	
 		VS_CreateSlider("wantedSize", SLIDER_WANTED_SIZE, 8, DIM, 8, 24);
-		VS_CreateSlider("blurSize", 2, 1, 255, 1, 11);
+		VS_CreateSlider("blurSize", SLIDER_BLUR_SIZE, 1, DIM-1, 2, 15);
 		VS_CreateSlider("norm1", 3, 1, 10000, 1, 1);
 		VS_CreateSlider("norm2", 4, 1, 10000, 1, 1);
 #define SLIDER_BLUR_THRESH 5
@@ -338,43 +345,55 @@ int main()
 	NmppPoint prevFrame={ 0,0 };
 	NmppPoint caughtNM = { 0,0 };
 	NmppPoint caughtPC = { 0,0 };
-	NmppPoint caughtOrg = { 160,160 };
+	NmppPoint caughtOrg = { 120,120 };
 	NmppPoint caughtOrgNM = { 0,0 };
 	NmppPoint caughtOrgPC = { 0,0 };
 	//NmppPoint wanted = { 10,60 };
 	NmppPoint wantedOrg = caughtOrg;
 
-	Cmd_x86_to_nm1 cmd = {0,0,0,0};
+	//IppiSize srcRoiSize = { DIM*scale,DIM*scale };
+	//IppiSize dimRoiSize = { DIM,DIM };
 
-	if (MC12101) {
-		cmd.command = 0x64078086;
-		cmd.counter++;
-		cmd.frmIndex = 0;
-		cmd.frmRoi = { 0,0,DIM,DIM };
-		cmd.frmSize = { WIDTH, HEIGHT };
-		dtpSend(toNM1, &cmd, sizeof32(cmd));
-	}
-	VS_OpRunForward();
-	int startFrame = 200;
-	int stopFrame  = startFrame+500;
-	VS_Seek(startFrame-1);
+	//VS_Seek(startFrame-1);
 	int wantedOrgOffsetX = 0;
-	int fr = VS_GetSrcFrameNum();
+	//int fr = VS_GetSrcFrameNum();
+	bool isCacheTracing = 0;
 	//######################################################################
 	//####################        VS_Run    ################################
 	//######################################################################
 	bool loadBlur = true;
+	//VS_OpRunForward();
+	int startFrame = VS_GetSlider(SLIDER_START_FRAME);
+	int lastCachedFrame = -1;
+	//int stopCachedFrame = -1;
 	while (int status=VS_Run()) {
-		int fr = VS_GetSrcFrameNum();
-		if (VS_GetCheckBox(CHECK_TRACK_CACHE))
-			stopFrame = fr;
-		// ----------------------------- SLIDER HANDLING ----------------------------
-		float scale = VS_GetSlider(SLIDER_SCALE);
-		//IppiSize srcRoiSize = { DIM*scale,DIM*scale };
-		//IppiSize dimRoiSize = { DIM,DIM };
+		int frameNum = VS_GetSrcFrameNum();
+		int cacheFrames = VS_GetSlider(SLIDER_CACHE_FRAMES);
+		
+		if (startFrame != VS_GetSlider(SLIDER_START_FRAME)) {
+			startFrame = VS_GetSlider(SLIDER_START_FRAME);
+			VS_Seek(startFrame);
+			lastCachedFrame = -1; // cache destroyed
+			if (VS_GetCheckBox(CHECK_TRACK_NMC)) {
+				void* comSpec = dtpGetComSpec(dwImg);
+				HalRingBufferConnector<int, 2>* connector = (HalRingBufferConnector<int, 2>*)comSpec;
+				connector->setHead(0);
+				connector->setTail(0);
+			}
 
+
+			if (startFrame + cacheFrames > VS_GetSrcFrames()) {
+				cacheFrames = VS_GetSrcFrames() - startFrame;
+				VS_SetSlider(SLIDER_CACHE_FRAMES, cacheFrames);
+			}
+		}
+		
+
+
+		float scale    = VS_GetSlider(SLIDER_SCALE);
 		int wantedSize = VS_GetSlider(1);wantedSize >>= 3;	wantedSize <<= 3;
-		int blurSize   = VS_GetSlider(2);
+		 	blurSize   = VS_GetSlider(SLIDER_BLUR_SIZE);
+		
 		// ------------------------------- MOUSE HANDLING ----------------------------		
 		VS_GetMouseStatus(&MouseStatus);
 		if (MouseStatus.nKey == VS_MOUSE_CONTROL) {
@@ -394,22 +413,21 @@ int main()
 				caughtOrg = wantedOrg;
 				//currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x - DIM / 2));
 				//currFrame.y = MIN(HEIGHT - DIM, MAX(0, wantedOrg.y - DIM / 2));
-
 			}
 		}
 		// ------------------------------- PAUSE HANDLING ----------------------------
-		if (!(status&VS_PAUSE)) {
-			// если не пауза
-			//prevFrame = currFrame;
+		if (!(status&VS_PAUSE)) {	// если не пауза
 			memcpy(prevOriginC, currOriginC, WIDTH*HEIGHT*3);
 			memcpy(prevOrigin8u, currOrigin8u, WIDTH*HEIGHT);
 			memcpy(prevFullBlur8s, currFullBlur8s, WIDTH*HEIGHT);
 			
-			VS_GetData(VS_SOURCE, currOriginC);
+			VS_GetData    (VS_SOURCE, currOriginC);
 			VS_GetGrayData(VS_SOURCE, currOrigin8u);
 
-			if (VS_GetCheckBox(CHECK_TRACK_X64) || (VS_GetCheckBox(CHECK_TRACK_NMC) && !VS_GetCheckBox(CHECK_TRACK_CACHE)) ) 
+			//if ( VS_GetCheckBox(CHECK_TRACK_X64) || 
+			//	(VS_GetCheckBox(CHECK_TRACK_NMC) && (VS_GetSrcFrameNum() > lastCachedFrame)))
 			{
+				
 				if (VS_GetCheckBox(CHECK_IPP)) {
 					ippiFilterBox_8u_C1R((Ipp8u*)currOrigin8u, WIDTH, (Ipp8u*)currFullBlur8s, WIDTH, frmFullDim, { blurSize, blurSize }, { blurSize / 2, blurSize / 2 });
 					nmppsRShiftC_8u((nm8u*)currFullBlur8s, 1, (nm8u*)currFullBlur8s, WIDTH*HEIGHT);
@@ -425,8 +443,8 @@ int main()
 			}
 			
 			if (VS_GetSrcFrameNum() == startFrame) {
-				VS_GetData(VS_SOURCE, prevOriginC);
-				VS_GetGrayData(VS_SOURCE, prevOrigin8u);
+				memcpy(prevOriginC, currOriginC, WIDTH*HEIGHT * 3);
+				memcpy(prevOrigin8u, currOrigin8u, WIDTH*HEIGHT);
 				memcpy(prevFullBlur8s, currFullBlur8s, WIDTH*HEIGHT);
 			}
 			VS_SetData(PREV_ORIGIN_IMG, prevOriginC);
@@ -441,7 +459,11 @@ int main()
 			wantedOrg.x >>=3;
 			wantedOrg.x <<=3;
 		}
-
+		if (VS_GetSrcFrameNum() >= startFrame + cacheFrames - 1) {
+			VS_Seek(startFrame);
+			frameNum = VS_GetSrcFrameNum();
+			//continue;
+		}
 		//ippiSuperSampling_8u_C1R(currOrigin8u, WIDTH, srcRoiSize, currOrigin8u, dim, dimRoiSize, buffer);
 		//VS_SetData(PREV_IMG8, prevImage8u);
 		//VS_SetData(CURR_IMG8, currImage8u);
@@ -454,7 +476,7 @@ int main()
 		//########################################################################
 		//#####################         track X64      ###########################
 		//########################################################################
-		float maxPC = 0;
+		nm32fcr maxPC = { 0,0 };
 		if (VS_GetCheckBox(CHECK_TRACK_X64))
 		{
 
@@ -590,7 +612,7 @@ int main()
 							max = abs;
 							caught = { j,i };
 							if (k == 0) {
-								maxPC = max;
+								maxPC = productIFFT_fcr[i*DIM + j];
 								caughtPC.x =  caught.x;
 								caughtPC.y =  caught.y;
 							}
@@ -609,43 +631,46 @@ int main()
 			}
 			caughtOrgPC.x = currFrame.x + caughtPC.x;
 			caughtOrgPC.y = currFrame.y + caughtPC.y;
-			caughtOrg = caughtOrgPC;
 		}
 		
 		//########################################################################
 		//#####################         track NMC      ###########################
 		//########################################################################
-		float maxNM=0;
+		nm32fcr maxNM = { 0,0 };
 		
+		static int index0;
+		static int index1;
+		int currFrameNum = VS_GetSrcFrameNum();
 		if (MC12101  && VS_GetCheckBox(CHECK_TRACK_NMC)) {
-
-			int currFrameNum = VS_GetSrcFrameNum();
+			
 	
-			if (!(status&VS_PAUSE)) 
-			if (loadBlur) {
-				static int cnt = 0;
-				static int sz = 0;
-				printf("[...%d %d ",cnt++,sz+=WIDTH*HEIGHT/4);
-				dtpSend(dwImg, currFullBlur8s, fullSize32);
-				if (currFrameNum == startFrame)
-					dtpSend(dwImg, currFullBlur8s, fullSize32);
-				printf("...]\n");
-			}
+			if (!(status&VS_PAUSE)) {
+				if (currFrameNum == startFrame) {
+					
+					index0 = 0;
+					index1 = 0;
+				}
+				else {
+					index1++;
+					index0 = index1 - 1;
+				}
+				if (currFrameNum > lastCachedFrame) {
+					dtpSend(dwImg, currFullBlur8s, imgFullSize32);
+					lastCachedFrame = currFrameNum;
+				}
 
-			if (currFrameNum >= stopFrame) {
-				loadBlur = false;
-				VS_Seek(startFrame-1);
 			}
 	
 			cmd.command = DO_FFT0;
 			cmd.counter++;
-			cmd.frmIndex = currFrameNum - startFrame;
+			cmd.frmIndex = index0;
 			cmd.frmSize = frmFullDim;
 			cmd.frmRoi = { wantedOrg.x,wantedOrg.y,wantedSize, wantedSize };
 			dtpSend(toNM1, &cmd, sizeof32(cmd));
+
 			cmd.command = DO_FFT1;
 			cmd.counter++;
-			cmd.frmIndex++;
+			cmd.frmIndex = index1;
 			cmd.frmSize = frmFullDim;
 			cmd.frmRoi = {currFrame.x,currFrame.y,DIM,DIM};
 			dtpSend(toNM1, &cmd, sizeof32(cmd));
@@ -657,20 +682,20 @@ int main()
 			// take profit :
 			dtpRecv(drOut, &caughtNM, sizeof32(caughtNM));
 			
-			//dtpRecv(drOut, &maxNM, sizeof32(maxNM)); bug
+			dtpRecv(drOut, &maxNM, sizeof32(maxNM)); //bug
 			caughtOrgNM.x = currFrame.x + caughtNM.x;
 			caughtOrgNM.y = currFrame.y + caughtNM.y;
 		}
 		
 		if (VS_GetCheckBox(CHECK_TRACK_NMC)) {
-			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgNM.x + 1, caughtOrgNM.y + 1, caughtOrgNM.x + wantedSize - 2, caughtOrgNM.y + wantedSize - 2, VS_YELLOW, VS_NULL_COLOR);
+			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgNM.x + 1, caughtOrgNM.y + 1, caughtOrgNM.x + wantedSize - 1, caughtOrgNM.y + wantedSize - 1, VS_YELLOW, VS_NULL_COLOR);
 			caughtOrg = caughtOrgNM;
-			VS_Text("NM cx:%d cy:%d max:%f\r\n",caughtNM.x, caughtNM.y,maxNM);
+			VS_Text("%d NM cx:%d cy:%d max:%f %f\r\n", currFrameNum-startFrame, caughtNM.x, caughtNM.y,maxNM.re, maxNM.im);
 		}
 		if (VS_GetCheckBox(CHECK_TRACK_X64)) {
 			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgPC.x, caughtOrgPC.y, caughtOrgPC.x + wantedSize, caughtOrgPC.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
 			caughtOrg = caughtOrgPC;
-			VS_Text("PC cx:%d cy:%d max:%f\r\n",caughtPC.x, caughtPC.y,maxPC);
+			VS_Text("%d PC cx:%d cy:%d max:%f %f \r\n", currFrameNum - startFrame, caughtPC.x, caughtPC.y,maxPC.re, maxPC.im);
 		}
 
 		_ASSERTE(caughtOrg.x >= 0);
@@ -686,6 +711,9 @@ int main()
 		//VS_Text("NM wx:%d wy:%d -> cx:%d cy:%d dx:%d dy:%d\r\n", wantedOrg.x, wantedOrg.y, caughtOrgNM.x, caughtOrgNM.y, caughtOrgNM.x - caughtOrgNM.x, caughtOrgNM.y - wantedOrg.y);
 		//VS_Text("PC wx:%d wy:%d -> cx:%d cy:%d dx:%d dy:%d\r\n", wantedOrg.x, wantedOrg.y, caughtOrgPC.x, caughtOrgPC.y, caughtOrgPC.x - caughtOrgNM.x, caughtOrg.y - wantedOrg.y);
 		//VS_Text("pc:%f nm:%f \r\n",maxPC , maxNM);
+		
+	
+
 		VS_Draw(VS_DRAW_ALL);
 	}
 }

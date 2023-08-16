@@ -54,7 +54,7 @@ extern "C" {
 };
 //}
 
-#define VS_SAVE_IMAGE
+#define VS_SAVE_IMAGE 
 //vsSaveImage
 #define PRINT printf
 
@@ -185,10 +185,10 @@ int main(){
 			
 
 			
-			//if (cmdIn.command == DO_FFT0 )	
-			//	VS_SAVE_IMAGE("1_FFT0_8s.vsimg", blurRoi8s, DIM, DIM, VS_RGB8_8);
-			//else				
-			//	VS_SAVE_IMAGE("1_FFT1_8s.vsimg", blurRoi8s, DIM, DIM, VS_RGB8_8);
+			if (cmdIn.command == DO_FFT0 )	
+				VS_SAVE_IMAGE("1_FFT0_8s.vsimg", blurRoi8s, DIM, DIM, VS_RGB8_8);
+			else				
+				VS_SAVE_IMAGE("1_FFT1_8s.vsimg", blurRoi8s, DIM, DIM, VS_RGB8_8);
 			int *tail=ring_x86_to_nm1_img->ptrTail();
 			//memcpy(ringBufferLo, roi, DIM*DIM / 4);
 			//printf("%x %x %d\n", roi, tail, cmdIn.frmIndex);

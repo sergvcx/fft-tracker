@@ -174,6 +174,9 @@ int main()
 	dtpSend(file_desc, ring, 6);
 	dtpClose(file_desc);
 
+	memset(ring_x86_to_nm1_img.data, 0, ring_x86_to_nm1_img.size);
+	memset(ring_nm1_to_x86_out.data, 0, ring_nm1_to_x86_out.size);
+	memset(ring_nm1_to_x86_out.data, 0, ring_nm1_to_x86_out.size);
 
 	for (int i = 0; i < 6; i++)
 		printf("%d: ring:%08x data:%08x size:%8d id:%08x\n", i, (int)ring[i], (int)ring[i]->data, ring[i]->size, ring[i]->bufferId);
@@ -220,6 +223,9 @@ int main()
 		printf("Handshake with nm1 - error %d\n",cmd.command);
 		return -1;
 	}
+	long long sz= ring_x86_to_nm1_img.size;
+	//dtpSend(rbTo86, &ring_x86_to_nm1_img.size, 1);
+	dtpSend(rbTo86, &sz, 2);
 	
 
 	
@@ -303,7 +309,7 @@ int main()
 				nmppsFFT128Inv_32fcr(FFT1_fcr + i * DIM, 1, tmpFFT_fcr + i, DIM, &specInv);
 			}
 			
-			float max = 0;
+			//float max = 0;
 			//float* temp32f = (float*)tmpFFT_fcr;
 			//for (int i = 0; i < DIM; i++) {
 			//	for (int j = 0; j < DIM; j++) {
@@ -339,11 +345,12 @@ int main()
 			NmppPoint c2;
 			caught.y = idx >> 8;
 			caught.x = (idx % 256) >> 1;
+			nm32fcr max = tmpFFT_fcr[idx>>1];// ->re;
 			//if (c2.y != caught.y || c2.x != caught.x)
 			//	printf("ERROR %d %d %d %d\n", c2.x, c2.y, caught.x, caught.y);
 			
 			dtpSend(rbTo86, &caught, sizeof32(caught));
-			//dtpSend(rbTo86, &max, sizeof32(max)); bug
+			dtpSend(rbTo86, &max, sizeof32(max));// bug
 			
 		}
 		else {
