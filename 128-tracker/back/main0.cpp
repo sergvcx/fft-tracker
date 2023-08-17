@@ -13,10 +13,12 @@
 #include "stdio.h"
 #include "string.h"
 #include "hal/ringbuffert.h"
+#include "hal/cache.h"
 #include "dumpx.h"
 #include "mc12101load_nm.h"
 #include "tracker.h"
 #include "vsimg.h"
+#include "nmassert.h"
 void swap(void** ptr0, void** ptr1) {
 	void* tmp = *ptr1;
 	*ptr1 = *ptr0;
@@ -129,15 +131,17 @@ int* toLocal0(void* addr) {
 }
 #define VS_SAVE_IMAGE 
 //vsSaveImage
-#define PRINT printf
+#define PRINT 
+//printf
 
 //#define  printf 
+__attribute__((section(".text.nmpp")))
 int main()
 {
-
+	
 	DISABLE_SYS_TIMER()
 	
-
+	halInstrCacheEnable(); 
 	int file_desc = dtpOpenFile(FILE, "wb");
 
 
@@ -308,16 +312,17 @@ int main()
 			for (int i = 0; i < DIM; i++) {
 				nmppsFFT128Inv_32fcr(FFT1_fcr + i * DIM, 1, tmpFFT_fcr + i, DIM, &specInv);
 			}
-			
-			//float max = 0;
-			//float* temp32f = (float*)tmpFFT_fcr;
+			NmppPoint rcaught;
+			float max = 0;
+			nm32fcr rmax;
+			float* temp32f = (float*)tmpFFT_fcr;
 			//for (int i = 0; i < DIM; i++) {
 			//	for (int j = 0; j < DIM; j++) {
 			//		//if (max < productIFFT_fc[i*dim + j].re) {
 			//		//	max = productIFFT_fc[i*dim + j].re;
 			//		//float abs= 
 			//		float re = tmpFFT_fcr[i*DIM + j].re;
-			//		//float im = tmpFFT_fcr[i*dim + j].im;
+			//		float im = tmpFFT_fcr[i*DIM + j].im;
 			//		//float abs = re * re + im * im;
 			//
 			//		//productAbs32f[i*dim + j] = abs;
@@ -325,14 +330,21 @@ int main()
 			//
 			//		if (max < re) {
 			//			max = re;
-			//			caught.y = i;
-			//			caught.x = j;
+			//			rcaught.y = i;
+			//			rcaught.x = j;
+			//			rmax = { im,re };
 			//		}
-			//		
+			//		if (max < im) {
+			//			max = im;
+			//			rcaught.y = i;
+			//			rcaught.x = j;
+			//			rmax = { im,re };
+			//		}
+			//
 			//
 			//	}
 			//}
-			//dump_32f("%.3f ", (nm32f*)tmpFFT_fcr, 14, 14, DIM * 2, 0);
+			////dump_32f("%.3f ", (nm32f*)tmpFFT_fcr, 14, 14, DIM * 2, 0);
 			//printf("---\n");
 			//dump_32f("%.2e ", (nm32f*)tmpFFT_fcr, 14, 14, DIM * 2, 0);
 
@@ -342,15 +354,22 @@ int main()
 			//float max = 0;
 			
 			int idx = nmblas_isamax(DIM*DIM * 2, (const float*)tmpFFT_fcr, 1);
-			NmppPoint c2;
 			caught.y = idx >> 8;
 			caught.x = (idx % 256) >> 1;
-			nm32fcr max = tmpFFT_fcr[idx>>1];// ->re;
-			//if (c2.y != caught.y || c2.x != caught.x)
-			//	printf("ERROR %d %d %d %d\n", c2.x, c2.y, caught.x, caught.y);
+			nm32fcr maxx = tmpFFT_fcr[idx>>1];// ->re;
+			//if (rcaught.y != caught.y || rcaught.x != caught.x) {
+			//	printf("ERROR %d %d %d %d\n", rcaught.x, rcaught.y, caught.x, caught.y);
+			//	//NMASSERT_MSG(0,"erroorrr");
+			//}
+			
+			//dtpSend(rbTo86, &rcaught, sizeof32(rcaught));
+			
 			
 			dtpSend(rbTo86, &caught, sizeof32(caught));
-			dtpSend(rbTo86, &max, sizeof32(max));// bug
+			
+			
+			//dtpSend(rbTo86, &maxx, sizeof32(maxx));// bug
+			//dtpSend(rbTo86, &rmax, sizeof32(rmax));// bug
 			
 		}
 		else {

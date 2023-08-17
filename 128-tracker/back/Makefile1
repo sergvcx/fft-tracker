@@ -40,6 +40,9 @@ run:  $(TARGET)
 rund: $(TARGETD)
 	mc12101run -p -R -a1 -v $(TARGETD) 
 
+runs: $(TARGETD)
+	mc12101run  -R -a1 -v $(TARGETD) 
+
 monitor:
 	mc12101_gdb_monitor 0 0 5555
 	

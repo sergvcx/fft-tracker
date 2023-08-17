@@ -15,3 +15,9 @@ run0:
 	
 run1:
 	$(MAKE) -f Makefile1 run
+
+runs0:
+	$(MAKE) -f Makefile0 runs
+	
+runs1:
+	$(MAKE) -f Makefile1 runs

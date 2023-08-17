@@ -21,6 +21,12 @@ SECTIONS
 	*libnm6407int.a:*(.text.*)
   } > EMI
  
+  .text.nmpp : ALIGN(0x8)
+  {
+    *(.text.nmpp*);
+    *(.text.hal*);
+  } > C1_IMU2
+ 
   .stub : ALIGN(0x8)
   {
     *(.gdb*)

@@ -42,6 +42,7 @@ SECTIONS
   .text.nmpp : ALIGN(0x8)
   {
     *(.text.nmpp*);
+    *(.text.hal*);
   } > C0_IMU0
  
  

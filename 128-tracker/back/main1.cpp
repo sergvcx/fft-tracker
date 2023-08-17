@@ -2,6 +2,7 @@
 #include "dtp/dtp.h"
 #include "dtp/file.h"
 #include "hal/ringbuffert.h"
+#include "hal/cache.h"
 #include "dtp/mc12101.h"
 #include "mc12101load_nm.h"
 #include "nmpp.h"
@@ -17,7 +18,7 @@ Cmd_nm1_to_nm0 cmdOut = { 0,0 };
 
 __attribute__((section(".data.imu3"))) 	int ringBufferLo[DIM*DIM*2];
 __attribute__((section(".data.imu1"))) 	int ringBufferHi[DIM*DIM*2];
-__attribute__((section(".data.imu2"))) 	int ringBufferHi2[DIM*DIM* 2];
+//__attribute__((section(".data.imu2"))) 	int ringBufferHi2[DIM*DIM* 2];
 
 #define FULL_BANK 32*1024 // 128kB
 #define PRINT 
@@ -56,13 +57,16 @@ extern "C" {
 
 #define VS_SAVE_IMAGE 
 //vsSaveImage
-#define PRINT printf
+#define PRINT 
+//printf
 
 #define FILE "../exchange.bin"
 int blurWeights[16 * 16];
+__attribute__((section(".text.nmpp")))
 int main(){
-	halSleep(100);
-	
+	//halSleep(1000);
+	halInstrCacheEnable();
+
 	printf("nmc1 started\n");
 	int file_desc = 0;
 	do {
@@ -164,24 +168,26 @@ int main(){
 				nmppsSet_8s(0, blurRoi8s, DIM*DIM);
 			halDma2D_Start(roi, blurRoi8s, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM/4);
 			//mdelay(10);
-			while (!halDmaIsCompleted()) {
-				printf(".");
-			};
+			while (!halDma2D_IsCompleted());// {
+			//	printf(".");
+			//};
 			
-			if (cmdIn.command == DO_FFT0)
-				nmppsSet_8s(0, (nm8s*)ringBufferHi, DIM*DIM);
+			//if (cmdIn.command == DO_FFT0)
+			//	nmppsSet_8s(0, (nm8s*)ringBufferHi, DIM*DIM);
+			//
 
-			nm8s* src = (nm8s*)roi;
-			nm8s* dst = (nm8s*)ringBufferHi;
-			for (int y = 0; y < cmdIn.frmRoi.height; y++) {
-				memcpy(dst, src, cmdIn.frmRoi.width/ 4);
-				src = nmppsAddr_8s(src, cmdIn.frmSize.width);
-				dst = nmppsAddr_8s(dst, DIM);
-			}
-			for (int i = 0; i < DIM*DIM; i++) {
-				if (ringBufferHi[i] != ringBufferLo[i])
-					printf("DMA error: dma[%d]=%08x mcpy[%d]=08%x\n", i, ringBufferLo[i], i, ringBufferHi[i]);
-			}
+			//nm8s* src = (nm8s*)roi;
+			//nm8s* dst = (nm8s*)blurRoi8s;
+			//for (int y = 0; y < cmdIn.frmRoi.height; y++) {
+			//	memcpy(dst, src, cmdIn.frmRoi.width/ 4);
+			//	src = nmppsAddr_8s(src, cmdIn.frmSize.width);
+			//	dst = nmppsAddr_8s(dst, DIM);
+			//}
+			
+			//for (int i = 0; i < DIM*DIM; i++) {
+			//	if (ringBufferHi[i] != ringBufferLo[i])
+			//		printf("DMA error: dma[%d]=%08x mcpy[%d]=08%x\n", i, ringBufferLo[i], i, ringBufferHi[i]);
+			//}
 			
 
 			
