@@ -38,7 +38,7 @@ run:  $(TARGET)
 	mc12101run -p -R -a0 -v $(TARGET) 
 
 runs:  $(TARGET) 
-	mc12101run -R -a0 -v $(TARGET) 
+	mc12101run  -R -a0 -v $(TARGET) 
 
 rund: $(TARGETD)
 	mc12101run -p -R -a0 -v $(TARGETD) 
