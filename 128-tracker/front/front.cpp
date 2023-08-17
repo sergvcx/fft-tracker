@@ -110,12 +110,16 @@ extern "C" {
 //###############            main        ###################
 //##########################################################
 #define LOG2DIM 7
-#define START_FRAME 35
+#define START_FRAME 1
 #define MC12101 0
 #define MAX_CACHE_FRAMES 30000000
 //#define AVI "..\\..\\..\\Samples\\Road2.avi"
 //#define AVI "../Samples/strike(xvid).avi"
-#define AVI "..\\..\\..\\Samples\\victory22_360x360(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\victory22_360x360(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\Su25_720x720(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\Su25_256x256(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\Trooping the Colour Flypast 2023_640x360(xvid).avi"
+#define AVI "..\\..\\..\\Samples\\strike_640x360(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\strike(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\strike256(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\victory22_384x360(xvid).avi"
@@ -374,10 +378,18 @@ int main()
 		int currentFrame = VS_GetSrcFrameNum();
 		int cacheFrames= VS_GetSlider(SLIDER_CACHE_FRAMES);
 		float scale    = VS_GetSlider(SLIDER_SCALE);
-		int wantedSize = VS_GetSlider(1);wantedSize >>= 3;	wantedSize <<= 3;
 		 	blurSize   = VS_GetSlider(SLIDER_BLUR_SIZE);
 		
-		// cache looping
+		
+		switch (currentFrame) {
+		case 1:				caughtOrg = { 29, 161 }; VS_SetSlider(SLIDER_WANTED_SIZE, 32); break;
+		case 50:				                     VS_SetSlider(SLIDER_WANTED_SIZE, 40); break;
+		//case 100:				caughtOrg = { 29, 161 }; VS_SetSlider(SLIDER_WANTED_SIZE, 32); break;
+		case 207:			caughtOrg = { 336, 210 }; VS_SetSlider(SLIDER_WANTED_SIZE, 32); break;
+
+		}
+			
+		int wantedSize = VS_GetSlider(1);wantedSize >>= 3;	wantedSize <<= 3;
 		
 		if (currentFrame >= startFrame + cacheFrames - 1) {
 			VS_Seek(startFrame-1);
@@ -390,8 +402,8 @@ int main()
 			if (VS_GetCheckBox(CHECK_TRACK_NMC)) {
 				void* comSpec = dtpGetComSpec(dwImg);
 				HalRingBufferConnector<int, 2>* connector = (HalRingBufferConnector<int, 2>*)comSpec;
-				connector->setHead(0);
-				connector->setTail(0);
+				//connector->setHead(0);
+				//connector->setTail(-1);
 			}
 			continue;
 		}
@@ -406,8 +418,8 @@ int main()
 			if (MouseStatus.nID == PREV_ORIGIN_IMG || MouseStatus.nID == CURR_ORIGIN_IMG) {
 				wantedOrg.x = MouseStatus.nX>>3<<3;
 				wantedOrg.y = MouseStatus.nY;
-				currFrame.x = MIN(WIDTH  - DIM, MAX(0, wantedOrg.x - DIM / 2))>>3<<3;
-				currFrame.y = MIN(HEIGHT - DIM, MAX(0, wantedOrg.y - DIM / 2));
+				currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2  - DIM / 2)) >> 3 << 3;
+				currFrame.y = MIN(HEIGHT - DIM, MAX(0, wantedOrg.y + wantedSize / 2 - DIM / 2));
 				caughtOrg   = wantedOrg;
 			}
 		}
@@ -458,8 +470,11 @@ int main()
 			VS_SetData(CURR_ORIGIN_IMG, currOriginC);
 			
 			wantedOrg = caughtOrg;
-			currFrame.x = MIN(WIDTH  - DIM, MAX(0, wantedOrg.x - DIM / 2))>>3<<3;
-			currFrame.y = MIN(HEIGHT - DIM, MAX(0, wantedOrg.y - DIM / 2));
+			//currFrame.x = MIN(WIDTH  - DIM, MAX(0, wantedOrg.x - DIM / 2))>>3<<3;
+			//currFrame.y = MIN(HEIGHT - DIM, MAX(0, wantedOrg.y - DIM / 2));
+			currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2 - DIM / 2)) >> 3 << 3;
+			currFrame.y = MIN(HEIGHT - DIM, MAX(0, wantedOrg.y + wantedSize / 2 - DIM / 2));
+
 			// 8-byte alignment
 			wantedOrg.x += wantedOrgOffsetX; // compensation from prev step offset
 			wantedOrgOffsetX = wantedOrg.x % 8;
@@ -636,11 +651,14 @@ int main()
 
 				}
 				else {
+					int spot = wantedSize;
 					NmppPoint caughtDepthOrg;
 					caughtDepthOrg.x = currFrame.x + caught.x*scale;
 					caughtDepthOrg.y = currFrame.y + caught.y*scale;
-					productIFFT_fcr[caughtPC.y*DIM + caughtPC.x] = { 0,0 };
-					for(int i=0; )
+					for(int i=-spot/2; i<spot/2;i++ )
+						for(int j=-spot/2; j<spot/2;j++ )
+							productIFFT_fcr[(caught.y+i)*DIM + caught.x+j] = { 0,0 };
+
 					//if (diffBlur8u[caught.y*DIM + caught.x] < blurThresh)
 					{
 						caughtDepthOrg.x = currFrame.x + caught.x*scale;
@@ -675,7 +693,7 @@ int main()
 					lastCachedFrame = currentFrame;
 				}
 				else{
-					//VS_Text("run from cache %d\r\n",currentFrame);
+					VS_Text("run from cache %d\r\n",currentFrame);
 					printf("run from cache %d\n",currentFrame);
 				}
 
@@ -708,17 +726,18 @@ int main()
 			caughtOrgNM.y = currFrame.y + caughtNM.y;
 		}
 		
-		if (VS_GetCheckBox(CHECK_TRACK_NMC)) {
-			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgNM.x + 1, caughtOrgNM.y + 1, caughtOrgNM.x + wantedSize - 1, caughtOrgNM.y + wantedSize - 1, VS_YELLOW, VS_NULL_COLOR);
-			caughtOrg = caughtOrgNM;
-			//VS_Text("%d NM cx:%d cy:%d max:%f %f\r\n", currentFrame-startFrame, caughtNM.x, caughtNM.y,maxNM.re, maxNM.im);
-		}
 		if (VS_GetCheckBox(CHECK_TRACK_X64)) {
 			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgPC.x, caughtOrgPC.y, caughtOrgPC.x + wantedSize, caughtOrgPC.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
 			caughtOrg = caughtOrgPC;
-			//VS_Text("%d PC cx:%d cy:%d max:%f %f \r\n", currentFrame - startFrame, caughtPC.x, caughtPC.y,maxPC.re, maxPC.im);
+			VS_Text("%d PC cx:%d cy:%d max:%f %f \r\n", currentFrame - startFrame, caughtPC.x, caughtPC.y, maxPC.re, maxPC.im);
 		}
 
+		if (VS_GetCheckBox(CHECK_TRACK_NMC)) {
+			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgNM.x + 1, caughtOrgNM.y + 1, caughtOrgNM.x + wantedSize - 1, caughtOrgNM.y + wantedSize - 1, VS_YELLOW, VS_NULL_COLOR);
+			caughtOrg = caughtOrgNM;
+			VS_Text("%d NM cx:%d cy:%d max:%f %f\r\n", currentFrame-startFrame, caughtNM.x, caughtNM.y,maxNM.re, maxNM.im);
+		}
+	
 		_ASSERTE(caughtOrg.x >= 0);
 		_ASSERTE(caughtOrg.y >= 0);
 		_ASSERTE(caughtOrg.x < WIDTH);

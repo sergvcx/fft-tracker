@@ -58,23 +58,24 @@ extern "C" {
 #define VS_SAVE_IMAGE 
 //vsSaveImage
 #define USE_SEMIHOSTING 1
-//#define PRINT0(a)
-//#define PRINT1(a) 
-//#define PRINT2(a,b) 
-//#define PRINT3(a,b,c) 
-//#define PRINT4(a,b,c,d) 
-//#define PRINT5(a,b,c,d,e) 
-//#define PRINT6(a,b,c,d,f,g) 
+#define PRINT0(a)
+#define PRINT1(a) 
+#define PRINT2(a,b) 
+#define PRINT3(a,b,c) 
+#define PRINT4(a,b,c,d) 
+#define PRINT5(a,b,c,d,e) 
+#define PRINT6(a,b,c,d,f,g) 
 //#define PRINT 
-
-#define PRINT0				printf
-#define PRINT1(a) 				printf(a) 
-#define PRINT2(a,b) 			printf(a,b) 
-#define PRINT3(a,b,c) 			printf(a,b,c) 
-#define PRINT4(a,b,c,d) 		printf(a,b,c,d) 
-#define PRINT5(a,b,c,d,e) 		printf(a,b,c,d,e) 
-#define PRINT6(a,b,c,d,f,g) 	printf(a,b,c,d,f,g) 
-
+//#define PRINT0				
+//
+//#define PRINT0				printf
+//#define PRINT1(a) 				printf(a) 
+//#define PRINT2(a,b) 			printf(a,b) 
+//#define PRINT3(a,b,c) 			printf(a,b,c) 
+//#define PRINT4(a,b,c,d) 		printf(a,b,c,d) 
+//#define PRINT5(a,b,c,d,e) 		printf(a,b,c,d,e) 
+//#define PRINT6(a,b,c,d,f,g) 	printf(a,b,c,d,f,g) 
+//
 
 //printf
 
@@ -183,7 +184,7 @@ int main(){
 	while (1) {
 		//printf("<<< 1:\n");
 		dtpRecv(rbCmdToNm1, &cmdIn, sizeof32(cmdIn));
-		PRINT4("--------- [in] cnt:%d cmd:0x%x frmIndex:%d------ \n", cmdIn.counter, cmdIn.command, cmdIn.frmIndex);
+		//PRINT4("--------- [in] cnt:%d cmd:0x%x frmIndex:%d------ \n", cmdIn.counter, cmdIn.command, cmdIn.frmIndex);
 
 		if (cmdIn.command == DO_FFT0 || cmdIn.command == DO_FFT1) {
 
