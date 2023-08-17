@@ -111,7 +111,7 @@ extern "C" {
 //##########################################################
 #define LOG2DIM 7
 #define START_FRAME 1
-#define MC12101 0
+#define MC12101 1
 #define MAX_CACHE_FRAMES 30000000
 //#define AVI "..\\..\\..\\Samples\\Road2.avi"
 //#define AVI "../Samples/strike(xvid).avi"
@@ -136,11 +136,12 @@ extern "C" {
 //#define AVI "d:\\video\\films\\256x256\\2xFormula2.avi"
 
 #include "hal/ringbuffert.h"
+
+
 int main()
 {
 	if (!VS_Init())
 		return 0;
-
 	int file_desc = 0;
 	do {
 		file_desc = dtpOpenFile("../exchange.bin", "rb");
@@ -383,7 +384,7 @@ int main()
 		
 		switch (currentFrame) {
 		case 1:				caughtOrg = { 29, 161 }; VS_SetSlider(SLIDER_WANTED_SIZE, 32); break;
-		case 50:				                     VS_SetSlider(SLIDER_WANTED_SIZE, 40); break;
+		case 50:				                     VS_SetSlider(SLIDER_WANTED_SIZE, 48); break;
 		//case 100:				caughtOrg = { 29, 161 }; VS_SetSlider(SLIDER_WANTED_SIZE, 32); break;
 		case 207:			caughtOrg = { 336, 210 }; VS_SetSlider(SLIDER_WANTED_SIZE, 32); break;
 
@@ -489,8 +490,8 @@ int main()
 		VS_SetData(PREV_ORG_BLUR_8S, prevFullBlur8s);
 		VS_SetData(CURR_ORG_BLUR_8S, currFullBlur8s);
 
-		VS_Rectangle(PREV_ORIGIN_IMG, currFrame.x, currFrame.y, currFrame.x + DIM * scale, currFrame.y + DIM * scale, VS_BLUE, VS_NULL_COLOR);
-		VS_Rectangle(CURR_ORIGIN_IMG, currFrame.x, currFrame.y, currFrame.x + DIM * scale, currFrame.y + DIM * scale, VS_BLUE, VS_NULL_COLOR);
+		//VS_Rectangle(PREV_ORIGIN_IMG, currFrame.x, currFrame.y, currFrame.x + DIM * scale, currFrame.y + DIM * scale, VS_BLUE, VS_NULL_COLOR);
+		//VS_Rectangle(CURR_ORIGIN_IMG, currFrame.x, currFrame.y, currFrame.x + DIM * scale, currFrame.y + DIM * scale, VS_BLUE, VS_NULL_COLOR);
 		VS_Rectangle(PREV_ORIGIN_IMG, wantedOrg.x, wantedOrg.y, wantedOrg.x + wantedSize * scale, wantedOrg.y + wantedSize * scale, VS_RED, VS_NULL_COLOR);
 		//########################################################################
 		//#####################         track X64      ###########################
@@ -693,7 +694,7 @@ int main()
 					lastCachedFrame = currentFrame;
 				}
 				else{
-					VS_Text("run from cache %d\r\n",currentFrame);
+					//VS_Text("run from cache %d\r\n",currentFrame);
 					printf("run from cache %d\n",currentFrame);
 				}
 
@@ -729,13 +730,13 @@ int main()
 		if (VS_GetCheckBox(CHECK_TRACK_X64)) {
 			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgPC.x, caughtOrgPC.y, caughtOrgPC.x + wantedSize, caughtOrgPC.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
 			caughtOrg = caughtOrgPC;
-			VS_Text("%d PC cx:%d cy:%d max:%f %f \r\n", currentFrame - startFrame, caughtPC.x, caughtPC.y, maxPC.re, maxPC.im);
+			//VS_Text("%d PC cx:%d cy:%d max:%f %f \r\n", currentFrame - startFrame, caughtPC.x, caughtPC.y, maxPC.re, maxPC.im);
 		}
 
 		if (VS_GetCheckBox(CHECK_TRACK_NMC)) {
 			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgNM.x + 1, caughtOrgNM.y + 1, caughtOrgNM.x + wantedSize - 1, caughtOrgNM.y + wantedSize - 1, VS_YELLOW, VS_NULL_COLOR);
 			caughtOrg = caughtOrgNM;
-			VS_Text("%d NM cx:%d cy:%d max:%f %f\r\n", currentFrame-startFrame, caughtNM.x, caughtNM.y,maxNM.re, maxNM.im);
+			//VS_Text("%d NM cx:%d cy:%d max:%f %f\r\n", currentFrame-startFrame, caughtNM.x, caughtNM.y,maxNM.re, maxNM.im);
 		}
 	
 		_ASSERTE(caughtOrg.x >= 0);
