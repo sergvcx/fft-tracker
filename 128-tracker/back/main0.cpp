@@ -131,18 +131,38 @@ int* toLocal0(void* addr) {
 }
 #define VS_SAVE_IMAGE 
 //vsSaveImage
-#define PRINT 
+#define USE_SEMIHOSTING 1
+
+
+//#define PRINT0(a)
+//#define PRINT1(a) 
+//#define PRINT2(a,b) 
+//#define PRINT3(a,b,c) 
+//#define PRINT4(a,b,c,d) 
+//#define PRINT5(a,b,c,d,e) 
+//#define PRINT6(a,b,c,d,f,g) 
+
+#define PRINT0				printf
+#define PRINT1(a) 				printf(a) 
+#define PRINT2(a,b) 			printf(a,b) 
+#define PRINT3(a,b,c) 			printf(a,b,c) 
+#define PRINT4(a,b,c,d) 		printf(a,b,c,d) 
+#define PRINT5(a,b,c,d,e) 		printf(a,b,c,d,e) 
+#define PRINT6(a,b,c,d,f,g) 	printf(a,b,c,d,f,g) 
+
+#define PRINT printf 
+
 //printf
 
 //#define  printf 
 __attribute__((section(".text.nmpp")))
 int main()
 {
+	PRINT0("Starting nm1 ... \n");
 	
 	DISABLE_SYS_TIMER()
 	
 	halInstrCacheEnable(); 
-	int file_desc = dtpOpenFile(FILE, "wb");
 
 
 	ring_x86_to_nm1_cmd.init(sizeof32(data_x86_to_nm1_cmd));
@@ -175,15 +195,18 @@ int main()
 	ring[4] = &ring_nm1_to_nm0_diff;
 	ring[5] = &ring_nm0_to_nm1_corr;
 
-	dtpSend(file_desc, ring, 6);
-	dtpClose(file_desc);
+	if (USE_SEMIHOSTING) {
+		int file_desc = dtpOpenFile(FILE, "wb");
+		dtpSend(file_desc, ring, 6);
+		dtpClose(file_desc);
+	}
 
 	memset(ring_x86_to_nm1_img.data, 0, ring_x86_to_nm1_img.size);
 	memset(ring_nm1_to_x86_out.data, 0, ring_nm1_to_x86_out.size);
 	memset(ring_nm1_to_x86_out.data, 0, ring_nm1_to_x86_out.size);
 
 	for (int i = 0; i < 6; i++)
-		printf("%d: ring:%08x data:%08x size:%8d id:%08x\n", i, (int)ring[i], (int)ring[i]->data, ring[i]->size, ring[i]->bufferId);
+		PRINT6 ("%d: ring:%08x data:%08x size:%8d id:%08x\n", i, (int)ring[i], (int)ring[i]->data, ring[i]->size, ring[i]->bufferId);
 
 
 	//--------------pc-nm0----------------
@@ -219,12 +242,13 @@ int main()
 
 	
 	Cmd_nm1_to_nm0 cmd;
-	printf("Waiting handshake ... \n");
+	PRINT0("Waiting handshake ... \n");
 	dtpRecv(rbCmd, &cmd, sizeof32(cmd));
 	if (cmd.command == 0x6407600D)
-		printf("Handshake with nm1 - ok. Working ... \n");
+		PRINT0("Handshake with nm1 - ok. Working ... \n");
 	else {
-		printf("Handshake with nm1 - error %d\n",cmd.command);
+		//PRINT0("Handshake with nm1 - error %d\n",cmd.command);
+		PRINT0("Handshake with nm1 - error \n");
 		return -1;
 	}
 	long long sz= ring_x86_to_nm1_img.size;
@@ -242,7 +266,7 @@ int main()
 		if (cmd.command == DO_FFT0) {
 			PRINT("out: DO_FFT0\n");
 			while (ring_nm1_to_nm0_diff.isEmpty())
-				printf("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff.head, ring_nm1_to_nm0_diff.tail);
+				PRINT3("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff.head, ring_nm1_to_nm0_diff.tail);
 
 			nm32s* in = toLocal0(ring_nm1_to_nm0_diff.ptrTail());
 			//printf("---32s-\n");
@@ -278,8 +302,8 @@ int main()
 		}
 		else if (cmd.command == DO_FFT1) {
 			PRINT("out: DO_FFT1\n");
-			while (ring_nm1_to_nm0_diff.isEmpty())
-				printf("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff.head, ring_nm1_to_nm0_diff.tail);
+			//while (ring_nm1_to_nm0_diff.isEmpty())
+			//	PRINT0("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff.head, ring_nm1_to_nm0_diff.tail);
 
 			nm32s* in = toLocal0(ring_nm1_to_nm0_diff.ptrTail());
 			//printf("--32s--\n");
@@ -373,7 +397,7 @@ int main()
 			
 		}
 		else {
-			PRINT("%d command:%d\n", cmd.counter, cmd.command);
+			PRINT3("%d command:%d\n", cmd.counter, cmd.command);
 		}
 
 		//t0 = clock();

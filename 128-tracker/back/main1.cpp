@@ -57,26 +57,54 @@ extern "C" {
 
 #define VS_SAVE_IMAGE 
 //vsSaveImage
-#define PRINT 
+#define USE_SEMIHOSTING 1
+//#define PRINT0(a)
+//#define PRINT1(a) 
+//#define PRINT2(a,b) 
+//#define PRINT3(a,b,c) 
+//#define PRINT4(a,b,c,d) 
+//#define PRINT5(a,b,c,d,e) 
+//#define PRINT6(a,b,c,d,f,g) 
+//#define PRINT 
+
+#define PRINT0				printf
+#define PRINT1(a) 				printf(a) 
+#define PRINT2(a,b) 			printf(a,b) 
+#define PRINT3(a,b,c) 			printf(a,b,c) 
+#define PRINT4(a,b,c,d) 		printf(a,b,c,d) 
+#define PRINT5(a,b,c,d,e) 		printf(a,b,c,d,e) 
+#define PRINT6(a,b,c,d,f,g) 	printf(a,b,c,d,f,g) 
+
+
 //printf
 
 #define FILE "../exchange.bin"
 int blurWeights[16 * 16];
 __attribute__((section(".text.nmpp")))
 int main(){
-	//halSleep(1000);
+	//halSleep(1000);d
+	//s
 	halInstrCacheEnable();
-
-	printf("nmc1 started\n");
-	int file_desc = 0;
-	do {
-		file_desc = dtpOpenFile(FILE, "rb");
-	} while (file_desc < 0);
-	
+	if (USE_SEMIHOSTING) printf("nmc1 started\n");
 	HalRingBufferData<int, 2>* ring[6];
-	dtpRecv(file_desc, ring, 6);
-	dtpClose(file_desc);
 	
+	if (USE_SEMIHOSTING) {
+		int file_desc = 0;
+		do {
+			file_desc = dtpOpenFile(FILE, "rb");
+		} while (file_desc < 0);
+		dtpRecv(file_desc, ring, 6);
+		dtpClose(file_desc);
+	}
+	else {
+		ring[0]=0x000a8184;// data : 000a8020 size : 256 id : 8601cdcd
+		ring[1]=0x000a8170;// data : 20022286 size : 8388608 id : 8601b00f
+		ring[2]=0x000a815c;// data : 20012286 size : 65536 id : 0186b00f
+		ring[3]=0x000a8148;// data : 000a8000 size : 32 id : 0100cdcd
+		ring[4]=0x000a8134;// data : 00070000 size : 32768 id : 0100deef
+		ring[5]=0x000a8120;// data : 00078000 size : 32768 id : 0001beef
+	}
+
 	HalRingBufferData<int, 2>* ring_x86_to_nm1_cmd = ring[0];
 	HalRingBufferData<int, 2>* ring_x86_to_nm1_img = ring[1];
 	//HalRingBufferData<int, 2>* ring_nm1_to_x86_out = ring[2];
@@ -84,10 +112,14 @@ int main(){
 	HalRingBufferData<int, 2>* ring_nm1_to_nm0_diff= ring[4];
 	//HalRingBufferData<int, 2>* ring_nm0_to_nm1_corr= ring[5];
 
+
+
+		
 	//ring_x86_to_nm1_img->data = (int*)ringBufferHi;
 	//ring_x86_to_nm1_img->init(32 * 1024);
+	if (USE_SEMIHOSTING)
 	for (int i = 0; i < 6; i++)
-		printf("%d: ring:%08x data:%08x size:%8d id:%08x\n", i, (int)ring[i], (int)ring[i]->data, ring[i]->size, ring[i]->bufferId);
+		PRINT6("%d: ring:%08x data:%08x size:%8d id:%08x\n", i, (int)ring[i], (int)ring[i]->data, ring[i]->size, ring[i]->bufferId);
 	
 	halEnbExtInt();
 	halDmaInit();
@@ -98,9 +130,8 @@ int main(){
 	// -------------------------------------------------------------
 	int rbCmdToNm1=dtpOpenRingbufferDefault(ring_x86_to_nm1_cmd);
 	int rbCmdToNm0=dtpOpenRingbufferDefault(ring_nm1_to_nm0_cmd);
-	int rbImg=dtpOpenRingbuffer(ring_x86_to_nm1_img, memCopyPush, memCopyPop);
+	//int rbImg=dtpOpenRingbuffer(ring_x86_to_nm1_img, memCopyPush, memCopyPop);
 	
-
 
 	for (int i = 0; i < 256; i++)
 		blurWeights[i] = -1;
@@ -114,37 +145,36 @@ int main(){
 
 
 	
-	
 	cmdOut.command = 0x6407600D;
 	cmdOut.counter++;
-	printf("Sending hanshake to nm1 ... \n");
+	PRINT0("Sending hanshake to nm1 ... \n");
 	dtpSend(rbCmdToNm0, &cmdOut, sizeof32(cmdOut));
-	printf("Waiting hanshake from x86 ... \n");
+	PRINT0("Waiting hanshake from x86 ... \n");
 	dtpRecv(rbCmdToNm1, &cmdIn, sizeof32(cmdIn));
 	if (cmdIn.command == 0x64078086)
-		printf("Handshake ok. Working ... \n");
+		PRINT0("Handshake ok. Working ... \n");
 	else {
-		printf("Handshake error %x\n", cmdIn.command);
+		PRINT2("Handshake error %x\n", cmdIn.command);
 		return -1;
 	}
 	
 	
 	NmppSize imgDim = cmdIn.frmSize;
 	int imgSize32 = imgDim.height*imgDim.width/4;
-	printf("imfSize32 =%d\n", imgSize32);
-	printf("width     =%d\n", cmdIn.frmSize.width);
-	printf("height    =%d\n", cmdIn.frmSize.height);
-	printf("roi.width =%d\n", cmdIn.frmRoi.width);
-	printf("roi.height=%d\n", cmdIn.frmRoi.height);
-	printf("roi.x     =%d\n", cmdIn.frmRoi.x);
-	printf("roi.y     =%d\n", cmdIn.frmRoi.y);
+	PRINT2("imfSize32 =%d\n", imgSize32);
+	PRINT2("width     =%d\n", cmdIn.frmSize.width);
+	PRINT2("height    =%d\n", cmdIn.frmSize.height);
+	PRINT2("roi.width =%d\n", cmdIn.frmRoi.width);
+	PRINT2("roi.height=%d\n", cmdIn.frmRoi.height);
+	PRINT2("roi.x     =%d\n", cmdIn.frmRoi.x);
+	PRINT2("roi.y     =%d\n", cmdIn.frmRoi.y);
 
 	//int handshake[8];
 	//dtpRecv(rbImg, handshake, 8);
 	//for (int i = 0; i < 8; i++)
 	//	printf("% d\n", handshake[i]);
 	
-	printf("Starting nm1 ... \n");
+	PRINT0("Starting nm1 ... \n");
 
 
 	
@@ -153,12 +183,12 @@ int main(){
 	while (1) {
 		//printf("<<< 1:\n");
 		dtpRecv(rbCmdToNm1, &cmdIn, sizeof32(cmdIn));
-		PRINT("--------- [in] cnt:%d cmd:0x%x frmIndex:%d------ \n", cmdIn.counter, cmdIn.command, cmdIn.frmIndex);
+		PRINT4("--------- [in] cnt:%d cmd:0x%x frmIndex:%d------ \n", cmdIn.counter, cmdIn.command, cmdIn.frmIndex);
 
 		if (cmdIn.command == DO_FFT0 || cmdIn.command == DO_FFT1) {
 
 			while (cmdIn.frmIndex >= ring_x86_to_nm1_img->head ) {
-				printf("ring_x86_to_nm1_img: head:%d tail:%d\n", ring_x86_to_nm1_img->head, ring_x86_to_nm1_img->tail);
+				PRINT3("ring_x86_to_nm1_img: head:%d tail:%d\n", ring_x86_to_nm1_img->head, ring_x86_to_nm1_img->tail);
 			}
 
 			int *roi = ring_x86_to_nm1_img->data +cmdIn.frmIndex*imgSize32 + cmdIn.frmRoi.y*imgDim.width / 4 + cmdIn.frmRoi.x / 4;

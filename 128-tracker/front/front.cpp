@@ -111,11 +111,11 @@ extern "C" {
 //##########################################################
 #define LOG2DIM 7
 #define START_FRAME 35
-#define MC12101 1
-#define AVI "..\\..\\..\\Samples\\Road2.avi"
+#define MC12101 0
 #define MAX_CACHE_FRAMES 30000000
+//#define AVI "..\\..\\..\\Samples\\Road2.avi"
 //#define AVI "../Samples/strike(xvid).avi"
-//#define AVI "..\\..\\..\\Samples\\victory22_360x360(xvid).avi"
+#define AVI "..\\..\\..\\Samples\\victory22_360x360(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\strike(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\strike256(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\victory22_384x360(xvid).avi"
@@ -163,7 +163,7 @@ int main()
 	NmppSize frmFullDim = { WIDTH,HEIGHT };
 	NmppRect frmFullRoi = { 0,0,WIDTH,HEIGHT };
 	Cmd_x86_to_nm1 cmd = { 0,0,0,0 };
-	long long  nmCacheSize32=50;
+	long long  nmCacheSize32=0x100000000;
 	if (MC12101) {
 		cmd.command = 0x64078086;
 		cmd.counter++;
@@ -202,26 +202,26 @@ int main()
 	nm32fcr *tmpFFT_fcr = (nm32fcr *)malloc32(size * sizeof32(nm32fcr));
 
 	//Ipp32fc *productFFT_fc = (Ipp32fc *)ippMalloc(3 * size * sizeof(Ipp32fc));
-	nm32fcr *productFFT_fcr = (nm32fcr *)malloc32(size * sizeof32(nm32fcr));
-	nm32fcr *productIFFT_fcr = (nm32fcr *)malloc32(size * sizeof32(nm32fcr));
-	nm32f	*productAbs32f = (nm32f *)malloc32(size * sizeof32(float));
-	nm32f	*blurCorr32f = (nm32f *)malloc32(size * sizeof32(float));
+	nm32fcr *productFFT_fcr = (nm32fcr *)malloc32(DIM*DIM * sizeof32(nm32fcr));
+	nm32fcr *productIFFT_fcr = (nm32fcr *)malloc32(DIM*DIM * sizeof32(nm32fcr));
+	nm32f	*productAbs32f = (nm32f *)malloc32(DIM*DIM * sizeof32(float));
+	nm32f	*blurCorr32f = (nm32f *)malloc32(DIM*DIM * sizeof32(float));
 	nm32f	*temp32f = (nm32f *)malloc32(size * sizeof32(float));
 	//Ipp32fc *productIFFT_fc = (Ipp32fc *)ippMalloc(3 * size * sizeof(Ipp32fc));
 	//nm32f   *currInput = nmppsMalloc_32f(3 * size);
-	nm32f   *wantedInput = nmppsMalloc_32f(3 * size);
-	nm8u	*currImage8u_ = nmppsMalloc_8u(3 * size); memset(currImage8u_, 0, 3 * size);
+	//nm32f   *wantedInput = nmppsMalloc_32f(3 * size);
+	nm8u	*currImage8u_ = nmppsMalloc_8u(3 * WIDTH*HEIGHT); memset(currImage8u_, 0, 3 * WIDTH*HEIGHT);
 	nm8u	*currImage8u = currImage8u_ + size;
 
-	nm8s	*currImage8s_ = nmppsMalloc_8s(3*size);
+	nm8s	*currImage8s_ = nmppsMalloc_8s(3* WIDTH*HEIGHT);
 	nm8s	*currImage8s = currImage8s_+size; // because filter box need pads
-	nm8u	*currBlur8u = nmppsMalloc_8u(size);
-	nm8u	*prevBlur8u = nmppsMalloc_8u(size);
-	nm8u	*diffBlur8u = nmppsMalloc_8u(size);
+	nm8u	*currBlur8u = nmppsMalloc_8u(WIDTH*HEIGHT);
+	nm8u	*prevBlur8u = nmppsMalloc_8u(WIDTH*HEIGHT);
+	nm8u	*diffBlur8u = nmppsMalloc_8u(WIDTH*HEIGHT);
 	//nm32s	*currImage32s = nmppsMalloc_32s(4 * size);
-	nm8u	*prevImage8u_ = nmppsMalloc_8u(3 * size);
+	nm8u	*prevImage8u_ = nmppsMalloc_8u(3 * WIDTH*HEIGHT);
 	nm8u	*prevImage8u = prevImage8u_ + size;
-	nm8s	*prevImage8s_ = nmppsMalloc_8s(3*size);
+	nm8s	*prevImage8s_ = nmppsMalloc_8s(3* WIDTH*HEIGHT);
 	nm8s	*prevImage8s  = prevImage8s_+size;
 	nm32s	*prevImage32s = nmppsMalloc_32s(3 * size);
 	nm32s	*diffImage32s = nmppsMalloc_32s(3 * size);
@@ -231,7 +231,8 @@ int main()
 	nm8s	*currFullBlur8s = nmppsMalloc_8s(WIDTH * HEIGHT);
 	nm8s    *prevFullImage8s_ = nmppsMalloc_8s(3 * WIDTH*HEIGHT);
 	nm8s    *prevFullImage8s = currFullImage8s_ + WIDTH * HEIGHT;
-	nm8s	*prevFullBlur8s = nmppsMalloc_8s(WIDTH * HEIGHT);
+	nm8s	*prevFullBlur8s_ = nmppsMalloc_8s(3*WIDTH * HEIGHT);
+	nm8s	*prevFullBlur8s = prevFullBlur8s_  + WIDTH * HEIGHT;
 
 	nm32s   *tempFull32s    = nmppsMalloc_32s(WIDTH * HEIGHT);
 	nm8s    *tempFull8s    = nmppsMalloc_8s(WIDTH * HEIGHT);
@@ -289,8 +290,8 @@ int main()
 
 #define PREV_ORG_BLUR_8S 2
 #define CURR_ORG_BLUR_8S 3
-		VS_CreateImage("Prev Blur", PREV_ORG_BLUR_8S, VS_GetWidth(VS_SOURCE), VS_GetHeight(VS_SOURCE), VS_RGB8_8, 0);
-		VS_CreateImage("Curr Blur", CURR_ORG_BLUR_8S, VS_GetWidth(VS_SOURCE), VS_GetHeight(VS_SOURCE), VS_RGB8_8, 0);
+		VS_CreateImage("Prev Blur", PREV_ORG_BLUR_8S, WIDTH, HEIGHT, VS_RGB8_8, 0);
+		VS_CreateImage("Curr Blur", CURR_ORG_BLUR_8S, WIDTH, HEIGHT, VS_RGB8_8, 0);
 
 #define CURR_IMG8 4
 		VS_CreateImage("current Image", CURR_IMG8, WIDTH, HEIGHT, VS_RGB8, 0);
@@ -488,19 +489,19 @@ int main()
 			//ippiFilterBox_8u_C1R((Ipp8u*)prevImage8u, width, blurImage, width, s, { blurSize, blurSize }, { blurSize / 2, blurSize / 2 });
 			//sobel(prevImage8u, blurImage, width, height);
 		//		sobelCmplx(prevImage8u, prevImage_fcr, width, height);
-			memset(wantedImage_fcr, 0, DIM*DIM* 8);
+			memset(wantedImage_fcr, 0, DIM*DIM * 8);
 			memset(wantedImage8s, 0, DIM*DIM);
 			_ASSERTE(wantedOrg.x % 8 == 0);
 			_ASSERTE(wantedSize % 8 == 0);
 			for (int i = 0; i < wantedSize; i++) {
 				for (int j = 0; j < wantedSize; j++) {
 					int blurDiff = prevFullBlur8s[WIDTH*(wantedOrg.y + i) + wantedOrg.x + j];
-					wantedImage_fcr[i*DIM+j] = { 0, float(blurDiff) };
+					wantedImage_fcr[i*DIM + j] = { 0, float(blurDiff) };
 					wantedImage8s[i*DIM + j] = blurDiff;
 				}
 			}
 			//VS_SetData(PREV_IMG_FC, wantedImage_fcr);
-		
+
 			// ----------------- BLUR  MASK ------------
 			//float blurPoint = prevBlur8u[(wanted.y + wantedSize / 2)*DIM + wanted.x + wantedSize / 2];
 			//for (int i = 0; i < DIM - wantedSize; i++) {
@@ -514,14 +515,14 @@ int main()
 
 
 			//--------------- prepare current input ----------------
-	
+
 			//ippiFilterBox_8u_C1R((Ipp8u*)currImage8u, width, currBlur8u, width, dimRoiSize, { blurSize, blurSize }, { blurSize /2, blurSize /2 });
 			//sobel(currImage8u, blurImage, width,  height);
 			//sobelCmplx(currImage8u, currImage_fcr, width, height);
 			//VS_SetData(CURR_BLUR, currBlur8u);
 
 			_ASSERTE(currFrame.x % 8 == 0);
-			for (int i = 0,k=0; i < DIM; i++) {
+			for (int i = 0, k = 0; i < DIM; i++) {
 				for (int j = 0; j < DIM; j++, k++) {
 					int blurDiff = currFullBlur8s[WIDTH*(currFrame.y + i) + currFrame.x + j];
 					currImage_fcr[k] = { 0, float(blurDiff) };
@@ -534,7 +535,7 @@ int main()
 
 			// ----------forward fft ----------------
 			NmppPoint caught0 = { 0,0 };
-			
+
 			//st = ippiFFTFwd_CToC_32fc_C1R(currImage_fc, dim * 8, currFFT_fc, dim * 8, spec, 0);
 			//st = ippiFFTFwd_CToC_32fc_C1R(wantedImage_fc, dim * 8, wantedFFT_fc, dim * 8, spec, 0);
 			//dump_32f("%f ", (nm32f*)wantedImage_fcr, 16, 16, DIM * 2, 0);
@@ -577,71 +578,78 @@ int main()
 			for (int i = 0; i < DIM; i++) 	nmppsFFT128Inv_32fcr(productFFT_fcr + i * DIM, 1, tmpFFT_fcr + i, DIM, specInv128);
 			for (int i = 0; i < DIM; i++) 	nmppsFFT128Inv_32fcr(tmpFFT_fcr + i * DIM, 1, productIFFT_fcr + i, DIM, specInv128);
 
-			
-			
+
+
 
 			//vsSaveImage("../back/pcIFFT.vsimg", productIFFT_fcr, DIM, DIM, VS_RGB32FC);
 
 			VS_SetData(IFFT_IMG, productIFFT_fcr);
 
-			if(0) for (int i = 0; i < DIM; i++) {
-				for (int j = 0; j < DIM; j++) {
-					//if (max < productIFFT_fc[i*dim + j].re) {
-					//	max = productIFFT_fc[i*dim + j].re;
-					//float abs= 
-
-					//float re = productIFFT_fcr[i*dim + j].re;
-					//float im = productIFFT_fcr[i*dim + j].im;
-					//float abs = re * re + im * im;
-					float abs = productIFFT_fcr[i*DIM + j].re;
-
-					productAbs32f[i*DIM + j] = abs;
-					temp32f[i*DIM + j] = abs;
-				}
-			}
-			int idx = nmblas_isamax(DIM*DIM * 2, (const float*)productIFFT_fcr, 1);
-			NmppPoint rcaughtPC;
-			rcaughtPC.y = idx >> 8;
-			rcaughtPC.x = (idx % 256) >> 1;
-			nm32fcr maxx = productIFFT_fcr[idx >> 1];// ->re;
-			maxPC = maxx;
 			//dump_32f("%.3f ", (nm32f*)productIFFT_fcr, 14, 14, DIM * 2, 0);
 			//printf("------\n");
 			//dump_32f("%.2e ", (nm32f*)productIFFT_fcr, 14, 14, DIM * 2, 0);
 
 			int blurThresh = VS_GetSlider(SLIDER_BLUR_THRESH);
-
-			if(0) for (int k = 0; k < VS_GetSlider(SLIDER_DEPTH_SEARCH); k++) {
-
-				float max = 0;
-				for (int i = 0; i < DIM - wantedSize; i++) {
-					for (int j = 0; j < DIM - wantedSize; j++) {
-						float abs = temp32f[i*DIM + j];
-						if (max < abs) {
-							max = abs;
-							caught = { j,i };
-							if (k == 0) {
-								maxPC = productIFFT_fcr[i*DIM + j];
-								caughtPC.x =  caught.x;
-								caughtPC.y =  caught.y;
+			VS_SetData(IFFT_IMG, productIFFT_fcr);
+			for (int k = 0; k < VS_GetSlider(SLIDER_DEPTH_SEARCH); k++) {
+				nm32fcr maxx = { 0,0 };
+				NmppPoint caught;
+				int searchMode = 0;
+				switch (searchMode) {
+				case (0):
+				{
+					int idx = nmblas_isamax(DIM*DIM * 2, (const float*)productIFFT_fcr, 1);
+					caught.y = idx >> 8;
+					caught.x = (idx % 256) >> 1;
+					maxx = productIFFT_fcr[idx >> 1];
+				}
+				case (1):
+				{
+					for (int i = 0; i < DIM - wantedSize; i++) {
+						for (int j = 0; j < DIM - wantedSize; j++) {
+							nm32fcr curr = productIFFT_fcr[i*DIM + j];
+							if (maxx.re < curr.re) {
+								maxx = curr;
+								caught = { i,j };
 							}
 						}
 					}
 				}
-
-				temp32f[caught.y*DIM + caught.x] = 0;
-				NmppPoint caughtDepthOrg;
-				//if (diffBlur8u[caught.y*DIM + caught.x] < blurThresh)
+				case(2):
 				{
+					for (int i = 0; i < DIM; i++) {
+						for (int j = 0; j < DIM; j++) {
+							nm32fcr curr = productIFFT_fcr[i*DIM + j];
+							if (maxx.re < curr.re) {
+								maxx = curr;
+								caught = { i,j };
+							}
+						}
+					}
+				}
+				}
+				if (k == 0) {
+					caughtPC = caught;
+					maxPC = maxx;
+					caughtOrgPC.x = currFrame.x + caughtPC.x;
+					caughtOrgPC.y = currFrame.y + caughtPC.y;
+
+				}
+				else {
+					NmppPoint caughtDepthOrg;
 					caughtDepthOrg.x = currFrame.x + caught.x*scale;
 					caughtDepthOrg.y = currFrame.y + caught.y*scale;
-					VS_Rectangle(CURR_ORIGIN_IMG, caughtDepthOrg.x, caughtDepthOrg.y, caughtDepthOrg.x + wantedSize , caughtDepthOrg.y + wantedSize , VS_GREEN, VS_NULL_COLOR);
+					productIFFT_fcr[caughtPC.y*DIM + caughtPC.x] = { 0,0 };
+					for(int i=0; )
+					//if (diffBlur8u[caught.y*DIM + caught.x] < blurThresh)
+					{
+						caughtDepthOrg.x = currFrame.x + caught.x*scale;
+						caughtDepthOrg.y = currFrame.y + caught.y*scale;
+						VS_Rectangle(CURR_ORIGIN_IMG, caughtDepthOrg.x, caughtDepthOrg.y, caughtDepthOrg.x + wantedSize, caughtDepthOrg.y + wantedSize, VS_GREENYELLOW, VS_NULL_COLOR);
+					}
 				}
 			}
-			caughtOrgPC.x = currFrame.x + rcaughtPC.x;
-			caughtOrgPC.y = currFrame.y + rcaughtPC.y;
 		}
-		
 		//########################################################################
 		//#####################         track NMC      ###########################
 		//########################################################################
