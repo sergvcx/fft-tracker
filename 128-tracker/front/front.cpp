@@ -24,8 +24,10 @@
 #define VS_TEXT
 #define LOG2DIM 7
 #define START_FRAME 1
-#define MC12101 0
-#define ALIGN 0xFFFF
+#define MC12101 1
+//#define ALIGN 0xFFF8
+#define ALIGN 0xFFC0
+#define WANTED_SIZE 64
 #define MAX_CACHE_FRAMES 0x1000
 #define SCRIPT 0
 //#define AVI "..\\..\\..\\Samples\\Road2_256x256(xvid).avi"
@@ -281,7 +283,7 @@ int main()
 		VS_CreateSlider("Cache frames", SLIDER_CACHE_FRAMES,1, MIN(nmCacheSize32/imgFullSize32,MAX_CACHE_FRAMES), 1, MIN(nmCacheSize32 / imgFullSize32,MAX_CACHE_FRAMES));
 #define SLIDER_WANTED_SIZE 1		
 #define SLIDER_BLUR_SIZE 2	
-		VS_CreateSlider("wantedSize", SLIDER_WANTED_SIZE, 8, DIM, 8, 24);
+		VS_CreateSlider("wantedSize", SLIDER_WANTED_SIZE, 8, DIM, 8, WANTED_SIZE);
 		VS_CreateSlider("blurSize", SLIDER_BLUR_SIZE, 1, DIM-1, 2, 15);
 		VS_CreateSlider("norm1", 3, 1, 10000, 1, 1);
 		VS_CreateSlider("norm2", 4, 1, 10000, 1, 1);
@@ -738,7 +740,7 @@ int main()
 			
 			dtpRecv(drOut, &caughtNM, sizeof32(caughtNM));
 			
-			//dtpRecv(drOut, &maxNM, sizeof32(maxNM)); //bug
+			dtpRecv(drOut, &maxNM, sizeof32(maxNM)); //bug
 			caughtOrgNM.x = currFrame.x + caughtNM.x;
 			caughtOrgNM.y = currFrame.y + caughtNM.y;
 		}

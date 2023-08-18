@@ -19,11 +19,15 @@
 #include "tracker.h"
 #include "vsimg.h"
 #include "nmassert.h"
-void swap(void** ptr0, void** ptr1) {
-	void* tmp = *ptr1;
-	*ptr1 = *ptr0;
-	*ptr0 = tmp;
-}
+
+#define VS_SAVE_IMAGE(a,b,c,d,e)
+//vsSaveImage
+#define USE_SEMIHOSTING 1
+#define PRINT(...) printf(__VA_ARGS__)
+#define PRINTRT(...) 
+// printf(__VA_ARGS__)
+
+
 
 extern "C" void halSleep(int) {};
 
@@ -68,27 +72,21 @@ __attribute__((section(".data.imu0"))) nm32fcr invBuffer3[100+64];
 
 #define FILE "../exchange.bin"
 
-__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_x86_to_nm1_cmd;
-__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_x86_to_nm1_img;
+__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_x86_to_nm1_cmd ;
+__attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_x86_to_nm1_img ;
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm1_to_x86_out;
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm1_to_nm0_cmd;
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm1_to_nm0_diff;
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm0_to_nm1_corr;
 
 __attribute__((section(".data.shmem0")))  int data_x86_to_nm1_cmd[16 * 16 ]; //sizeof32(Cmd_x86_to_nm1)
-__attribute__((section(".data.emi.bss"))) int data_x86_to_nm1_img[128 * 512 * 512 / 4];
+__attribute__((section(".data.emi"))) int tttt[0x1000-0xe4];
+__attribute__((section(".data.emi"), aligned(256))) int data_x86_to_nm1_img[128 * 512 * 512 / 4] ;
 __attribute__((section(".data.emi")))     int data_nm1_to_x86_out[2 * DIM*DIM * 2]; // declared on nm1 
 __attribute__((section(".data.shmem0")))  int data_nm1_to_nm0_cmd[1024]; //sizeof(Cmd_nm1_to_nm0)];
 __attribute__((section(".data.imu6")))    int data_nm1_to_nm0_diff[2 * DIM*DIM];
 __attribute__((section(".data.imu7")))	  int data_nm0_to_nm1_corr[2 * DIM*DIM];
 
-
-
-void* nmppsCopy_32f_(void* src, void* dst, unsigned size) {
-	//return memcpy(dst, src, size);
-	//return (int*)dst+size;
-	return 0;
-}
 
 
 
@@ -107,21 +105,6 @@ int* toLocal0(void* addr) {
 		return (int*)addr - 0x40000;
 	return (int*)addr;
 }
-#define VS_SAVE_IMAGE 
-//vsSaveImage
-#define USE_SEMIHOSTING 1
-
-
-#define PRINT(...) printf(__VA_ARGS__)
-#define PRINTRT(...) 
-//printf(__VA_ARGS__)
-//#define PRINT0				printf
-#define PRINT1(a) 				printf(a) 
-#define PRINT2(a,b) 			printf(a,b) 
-#define PRINT3(a,b,c) 			printf(a,b,c) 
-#define PRINT4(a,b,c,d) 		printf(a,b,c,d) 
-#define PRINT5(a,b,c,d,e) 		printf(a,b,c,d,e) 
-#define PRINT6(a,b,c,d,f,g) 	printf(a,b,c,d,f,g) 
 
 
 //printf 
@@ -132,6 +115,7 @@ int* toLocal0(void* addr) {
 __attribute__((section(".text.nmpp")))
 int main()
 {
+	
 	PRINT("Starting nm0 ... \n");
 	
 	DISABLE_SYS_TIMER()
@@ -306,10 +290,10 @@ int main()
 			for (int i = 0; i < DIM; i++) {
 				nmppsFFT128Inv_32fcr(FFT1_fcr + i * DIM, 1, tmpFFT_fcr + i, DIM, &specInv);
 			}
-			NmppPoint rcaught;
-			float max = 0;
-			nm32fcr rmax;
-			float* temp32f = (float*)tmpFFT_fcr;
+			//NmppPoint rcaught;
+			//float max = 0;
+			//nm32fcr rmax;
+			//float* temp32f = (float*)tmpFFT_fcr;
 			//for (int i = 0; i < DIM; i++) {
 			//	for (int j = 0; j < DIM; j++) {
 			//		//if (max < productIFFT_fc[i*dim + j].re) {
@@ -362,7 +346,7 @@ int main()
 			dtpSend(rbTo86, &caught, sizeof32(caught));
 			
 			
-			//dtpSend(rbTo86, &maxx, sizeof32(maxx));// bug
+			dtpSend(rbTo86, &maxx, sizeof32(maxx));// bug
 			//dtpSend(rbTo86, &rmax, sizeof32(rmax));// bug
 			
 		}
@@ -393,5 +377,12 @@ static void* memCopyPush(const void *src, void *dst, unsigned int size32) {
 		printf("error\n");
 	nmppsCopy_32f((nm32f*)src, (nm32f*)dst, size32);
 	return 0;
+}
+
+
+void swap(void** ptr0, void** ptr1) {
+	void* tmp = *ptr1;
+	*ptr1 = *ptr0;
+	*ptr0 = tmp;
 }
 }*/

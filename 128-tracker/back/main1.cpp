@@ -12,6 +12,16 @@
 #include "nmassert.h"
 #include "vsimg.h"
 
+#define NW "c:\\git\\nmw\\bin\\nmdisplay_source.nw"
+#define VS_SAVE_IMAGE vsSaveImage
+#define USE_SEMIHOSTING 1
+#define PRINT(...) printf(__VA_ARGS__)
+#define PRINTRT(...)
+//printf(__VA_ARGS__)
+#define EXCHANGE "../exchange.bin"
+
+
+
 Cmd_x86_to_nm1 cmdIn;
 Cmd_nm1_to_nm0 cmdOut = { 0,0 };
  
@@ -67,40 +77,12 @@ extern "C" {
 	void mdelay(int);
 
 };
-//}
-#define NW "c:\\git\\nmw\\bin\\nmdisplay_source.nw"
-#define VS_SAVE_IMAGE vsSaveImage
-#define USE_SEMIHOSTING 1
-#define PRINT(...) printf(__VA_ARGS__)
-#define PRINTRT(...) 
-//printf(__VA_ARGS__)
 
-#define PRINT1(a) 
-#define PRINT2(a,b) 
-#define PRINT3(a,b,c) 
-#define PRINT4(a,b,c,d) 
-#define PRINT5(a,b,c,d,e) 
-#define PRINT6(a,b,c,d,f,g) 
-//#define PRINT 
-//#define PRINT0				
-//
-//#define PRINT0				printf
-//#define PRINT1(a) 				printf(a) 
-//#define PRINT2(a,b) 			printf(a,b) 
-//#define PRINT3(a,b,c) 			printf(a,b,c) 
-//#define PRINT4(a,b,c,d) 		printf(a,b,c,d) 
-//#define PRINT5(a,b,c,d,e) 		printf(a,b,c,d,e) 
-//#define PRINT6(a,b,c,d,f,g) 	printf(a,b,c,d,f,g) 
-//
-
-//printf
-
-#define FILE "../exchange.bin"
 int blurWeights[16 * 16];
+
 __attribute__((section(".text.nmpp")))
 int main(){
-	//halSleep(1000);d
-	//s
+
 	halInstrCacheEnable();
 	if (USE_SEMIHOSTING) printf("nmc1 started\n");
 	HalRingBufferData<int, 2>* ring[6];
@@ -108,7 +90,7 @@ int main(){
 	if (USE_SEMIHOSTING) {
 		int file_desc = 0;
 		do {
-			file_desc = dtpOpenFile(FILE, "rb");
+			file_desc = dtpOpenFile(EXCHANGE, "rb");
 		} while (file_desc < 0);
 		dtpRecv(file_desc, ring, 6);
 		dtpClose(file_desc);
@@ -244,26 +226,62 @@ int main(){
 			nm8s* blurRoi8s = (nm8s*)ringBufferLo;
 			if (cmdIn.command == DO_FFT0)
 				nmppsSet_8s(0, blurRoi8s, DIM*DIM);
-			halDma2D_Start(roi, blurRoi8s, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM/4);
-			while (!halDma2D_IsCompleted());// {
-
-			//nm32s * imgAddr = ring_x86_to_nm1_img->data + cmdIn.frmIndex*imgSize32;
-			//NMASSERT((int)imgAddr & 0x0F == 0);
-			//int roi8Pos = cmdIn.frmRoi.y*imgDim.width  + cmdIn.frmRoi.x;	// roi byte-position 
-			//int roi8PosAligned64 = roi8Pos  & 0xFFFC0;						// 64-byte-aligned roi byte-position
-			//int roi32PosBase = roi8PosAligned64 >>2;						// 64-byte-aligned roi word-position
-			//int roi32PosDisp = roi8Pos - roi8PosAligned64;					// byte-offset from aligned position
-			//
-			//int roi8End = roi8Pos + cmdIn.frmRoi.width;						// right from roi byte-position
-			//int roi8EndAligned64 = (roi8End + 63)&0xFFC0;					// 64-byte-aligned byte-position of right from roi 
-			//int roi32EndBase = roi8EndAligned64>>2;							// word-offset from aligned position
-			//int roi32Width   = roi32EndBase - roi32PosBase;
-			//int roi32Size = roi32Width * cmdIn.frmRoi.height;
-
-			//int* srcDma = ring_x86_to_nm1_img->data + roi32PosBase;
-			//int* dstDma = ringBufferLo;
-			//halDma2D_Start(srcDma, dstDma, roi32Size, roi32Width, cmdIn.frmSize.width / 4, roi32Size);
 			
+			nm8s* src = (nm8s*)(ring_x86_to_nm1_img->data+ cmdIn.frmIndex*imgSize32 + cmdIn.frmRoi.y*imgDim.width/4 + cmdIn.frmRoi.x/4 );
+			nm8s* dst = (nm8s*)ringBufferLo;
+			int copyMode = 3;
+			if (copyMode==0) {
+				for (int y = 0; y < cmdIn.frmRoi.height; y++) {
+					memcpy(dst, src, cmdIn.frmRoi.width/ 4);
+					src = nmppsAddr_8s(src, cmdIn.frmSize.width);
+					dst = nmppsAddr_8s(dst, DIM);
+				}
+			}
+			//else if (copyMode==1)
+			//	nmppmCopy_8s((nm8s*)roi, cmdIn.frmRoi.width, blurRoi8s, DIM , cmdIn.frmRoi.height, cmdIn.frmRoi.width);
+			else if (copyMode == 2) {
+				halDma2D_Start(roi, blurRoi8s, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM/4);
+				while (!halDma2D_IsCompleted());// {
+			}
+			else if (copyMode ==3){
+				nm32s * imgAddr = ring_x86_to_nm1_img->data + cmdIn.frmIndex*imgSize32;
+				int roi8Pos = cmdIn.frmRoi.y*imgDim.width  + cmdIn.frmRoi.x;	// roi byte-position 
+				int roi8PosAligned64 = roi8Pos  & 0xFFFFFFC0;						// 64-byte-aligned roi byte-position
+				int roi32PosBase = roi8PosAligned64 >>2;						// 64-byte-aligned roi word-position
+				int roi32PosDisp = roi8Pos - roi8PosAligned64;					// byte-offset from aligned position
+			
+				int roi8End = roi8Pos + cmdIn.frmRoi.width;						// right from roi byte-position
+				int roi8EndAligned64 = (roi8End + 63)&0xFFFFFFC0;					// 64-byte-aligned byte-position of right from roi 
+				int roi32EndBase = roi8EndAligned64>>2;							// word-offset from aligned position
+				int roi32Width   = roi32EndBase - roi32PosBase;
+				int roi32Size = roi32Width * cmdIn.frmRoi.height;
+
+				int* srcDma = imgAddr + roi32PosBase;
+				int* dstDma = ringBufferLo;
+				
+				NMASSERT(((int)imgAddr & 0x0F) == 0);
+				NMASSERT(((int)srcDma & 0x0F) == 0);
+				NMASSERT(((int)dstDma & 0x0F) == 0);
+				NMASSERT(((int)roi32Width & 0x0F) == 0);
+				
+				src = (nm8s*)srcDma;
+				dst = (nm8s*)dstDma;
+
+				//for (int y = 0; y < cmdIn.frmRoi.height; y++) {
+				//	memcpy(dst, src, cmdIn.frmRoi.width / 4);
+				//	src = nmppsAddr_8s(src, cmdIn.frmSize.width);
+				//	dst = nmppsAddr_8s(dst, DIM);
+				//}
+				//printf("%d %d\n", roi32Width , cmdIn.frmRoi.width / 4);
+				NMASSERT(roi32Width == cmdIn.frmRoi.width / 4);
+				NMASSERT(roi32Size == cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4);
+				//NMASSERT(cmdIn.frmRoi.width / 4 == cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4);
+				//halDma2D_Start(roi, blurRoi8s, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM / 4);
+
+				halDma2D_Start(srcDma, dstDma, roi32Size, roi32Width, cmdIn.frmSize.width / 4, DIM/4);
+				while (!halDma2D_IsCompleted());
+			}
+
 			//mdelay(10);
 			//	printf(".");
 			//};
@@ -274,11 +292,7 @@ int main(){
 
 			//nm8s* src = (nm8s*)roi;
 			//nm8s* dst = (nm8s*)blurRoi8s;
-			//for (int y = 0; y < cmdIn.frmRoi.height; y++) {
-			//	memcpy(dst, src, cmdIn.frmRoi.width/ 4);
-			//	src = nmppsAddr_8s(src, cmdIn.frmSize.width);
-			//	dst = nmppsAddr_8s(dst, DIM);
-			//}
+			
 			
 			//for (int i = 0; i < DIM*DIM; i++) {
 			//	if (ringBufferHi[i] != ringBufferLo[i])
