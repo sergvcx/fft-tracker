@@ -18,7 +18,38 @@
 #include "crtdbg.h"
 #include "vsimg.h"
 #include "nmblas.h"
+#include "hal/ringbuffert.h"
 //#include "hadamard.h"
+
+
+#define LOG2DIM 7
+#define START_FRAME 1
+#define MC12101 1
+#define MAX_CACHE_FRAMES 8
+#define AVI "..\\..\\..\\Samples\\Road2_256x256(xvid).avi"
+#define ALIGN 0xFFF8
+//#define AVI "..\\..\\..\\Samples\\victory22_384x360(xvid).avi"
+//#define AVI "../Samples/strike(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\victory22_360x360(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\Su25_720x720(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\Su25_256x256(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\Trooping the Colour Flypast 2023_640x360(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\strike_640x360(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\strike(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\strike256(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\victory22_384x360(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\victory22_384x360(xvid).avi"
+//#define AVI "c:/SU 57 CRAZY SCARY SOUND COMPILATION_(ms video1).avi"
+//#define AVI "../../Samples/SU57(xvid).avi"
+//#define AVI "c:\\vel.avi"
+//#define AVI "c:\\drift.avi"
+//#define AVI "..\\Samples\\MAKS2015_256x256.avi1"
+//#define AVI "..\\Samples\\MAKS2015_256x256.avi1"
+//#define AVI "..\\Samples\\Heli_forest.avi"
+//#define AVI "../../Samples/Su256.avi"
+//#define AVI "..\\Samples\\Formula3.avi"
+//#define AVI "d:\\video\\films\\256x256\\2xFormula2.avi"
+
 
 int blur(nm8u *img, int width, int height, int size, int x, int y) {
 	int halfsize = size / 2;
@@ -33,17 +64,11 @@ int blur(nm8u *img, int width, int height, int size, int x, int y) {
 	sum /= k;
 	return sum;
 }
-
 void swap(void** ptr0, void** ptr1) {
 	void* tmp = *ptr1;
 	*ptr1 = *ptr0;
 	*ptr0 = tmp;
 }
-
-extern "C" {
-	void mdelay(int d);
-}
-
 //resize(prevOrigin8u + prevFrame.y*WIDTH + prevFrame.x, srcRoiSize, WIDTH, prevImage8u, dimRoiSize, DIM);
 //resize(currOrigin8u + currFrame.y*WIDTH + currFrame.x, srcRoiSize, WIDTH, currImage8u, dimRoiSize, DIM);
 
@@ -106,37 +131,10 @@ extern "C" {
 #define NmppRect IppiRect
 
 
+
 //##########################################################
 //###############            main        ###################
 //##########################################################
-#define LOG2DIM 7
-#define START_FRAME 100
-#define MC12101 0
-#define MAX_CACHE_FRAMES 30000000
-#define AVI "..\\..\\..\\Samples\\Road2.avi"
-//#define AVI "..\\..\\..\\Samples\\victory22_384x360(xvid).avi"
-//#define AVI "../Samples/strike(xvid).avi"
-//#define AVI "..\\..\\..\\Samples\\victory22_360x360(xvid).avi"
-//#define AVI "..\\..\\..\\Samples\\Su25_720x720(xvid).avi"
-//#define AVI "..\\..\\..\\Samples\\Su25_256x256(xvid).avi"
-//#define AVI "..\\..\\..\\Samples\\Trooping the Colour Flypast 2023_640x360(xvid).avi"
-//#define AVI "..\\..\\..\\Samples\\strike_640x360(xvid).avi"
-//#define AVI "..\\..\\..\\Samples\\strike(xvid).avi"
-//#define AVI "..\\..\\..\\Samples\\strike256(xvid).avi"
-//#define AVI "..\\..\\..\\Samples\\victory22_384x360(xvid).avi"
-//#define AVI "..\\..\\..\\Samples\\victory22_384x360(xvid).avi"
-//#define AVI "c:/SU 57 CRAZY SCARY SOUND COMPILATION_(ms video1).avi"
-//#define AVI "../../Samples/SU57(xvid).avi"
-//#define AVI "c:\\vel.avi"
-//#define AVI "c:\\drift.avi"
-//#define AVI "..\\Samples\\MAKS2015_256x256.avi1"
-//#define AVI "..\\Samples\\MAKS2015_256x256.avi1"
-//#define AVI "..\\Samples\\Heli_forest.avi"
-//#define AVI "../../Samples/Su256.avi"
-//#define AVI "..\\Samples\\Formula3.avi"
-//#define AVI "d:\\video\\films\\256x256\\2xFormula2.avi"
-
-#include "hal/ringbuffert.h"
 
 
 int main()
@@ -399,7 +397,7 @@ int main()
 
 		}
 			
-		int wantedSize = VS_GetSlider(1);wantedSize >>= 3;	wantedSize <<= 3;
+		int wantedSize = (int)VS_GetSlider(1)&ALIGN;
 		
 		if (currentFrame >= startFrame + cacheFrames - 1) {
 			VS_Seek(startFrame-1);
@@ -426,10 +424,13 @@ int main()
 		VS_GetMouseStatus(&MouseStatus);
 		if (MouseStatus.nKey == VS_MOUSE_CONTROL) {
 			if (MouseStatus.nID == PREV_ORIGIN_IMG || MouseStatus.nID == CURR_ORIGIN_IMG) {
-				wantedOrg.x = MouseStatus.nX>>3<<3;
+				//wantedOrg.x = MouseStatus.nX>>3<<3;
+				wantedOrg.x = MouseStatus.nX&ALIGN;
 				wantedOrg.y = MouseStatus.nY;
 				// currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2  - DIM / 2)) >> 3 << 3;
-				currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2  - DIM / 2));
+				// currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2  - DIM / 2)) >> 3 << 3;
+				// currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2  - DIM / 2));
+				currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2  - DIM / 2))&ALIGN;
 				currFrame.y = MIN(HEIGHT - DIM, MAX(0, wantedOrg.y + wantedSize / 2 - DIM / 2));
 				caughtOrg   = wantedOrg;
 			}
@@ -438,7 +439,7 @@ int main()
 		if (MouseStatus.nKey == VS_MOUSE_LBUTTON) {
 			if (MouseStatus.nID == PREV_ORIGIN_IMG || MouseStatus.nID == CURR_ORIGIN_IMG) {
 				//wantedOrg.x = MouseStatus.nX>>3<<3;
-				wantedOrg.x = MouseStatus.nX;
+				wantedOrg.x = MouseStatus.nX&ALIGN;
 				wantedOrg.y = MouseStatus.nY;
 				caughtOrg = wantedOrg;
 			}
@@ -483,8 +484,8 @@ int main()
 			
 			wantedOrg = caughtOrg;
 			///currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2 - DIM / 2)) >> 3 << 3;
-			currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2 - DIM / 2));
-			currFrame.y = MIN(HEIGHT - DIM, MAX(0, wantedOrg.y + wantedSize / 2 - DIM / 2));
+			currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2 - DIM / 2))&ALIGN;
+			currFrame.y = MIN(HEIGHT- DIM, MAX(0, wantedOrg.y + wantedSize / 2 - DIM / 2));
 
 			// 8-byte alignment
 			///wantedOrg.x += wantedOrgOffsetX; // compensation from prev step offset
@@ -500,8 +501,8 @@ int main()
 		VS_SetData(PREV_ORG_BLUR_8S, prevFullBlur8s);
 		VS_SetData(CURR_ORG_BLUR_8S, currFullBlur8s);
 
-		//VS_Rectangle(PREV_ORIGIN_IMG, currFrame.x, currFrame.y, currFrame.x + DIM * scale, currFrame.y + DIM * scale, VS_BLUE, VS_NULL_COLOR);
-		//VS_Rectangle(CURR_ORIGIN_IMG, currFrame.x, currFrame.y, currFrame.x + DIM * scale, currFrame.y + DIM * scale, VS_BLUE, VS_NULL_COLOR);
+		VS_Rectangle(PREV_ORIGIN_IMG, currFrame.x, currFrame.y, currFrame.x + DIM * scale, currFrame.y + DIM * scale, VS_BLUE, VS_NULL_COLOR);
+		VS_Rectangle(CURR_ORIGIN_IMG, currFrame.x, currFrame.y, currFrame.x + DIM * scale, currFrame.y + DIM * scale, VS_BLUE, VS_NULL_COLOR);
 		VS_Rectangle(PREV_ORIGIN_IMG, wantedOrg.x, wantedOrg.y, wantedOrg.x + wantedSize * scale, wantedOrg.y + wantedSize * scale, VS_RED, VS_NULL_COLOR);
 		//########################################################################
 		//#####################         track X64      ###########################
@@ -736,18 +737,19 @@ int main()
 			caughtOrgNM.y = currFrame.y + caughtNM.y;
 		}
 		
+		if (VS_GetCheckBox(CHECK_TRACK_NMC)) {
+			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgNM.x + 1, caughtOrgNM.y + 1, caughtOrgNM.x + wantedSize - 1, caughtOrgNM.y + wantedSize - 1, VS_YELLOW, VS_NULL_COLOR);
+			caughtOrg = caughtOrgNM;
+			VS_Text("%d NM cx:%d cy:%d max:%f %f\r\n", currentFrame - startFrame, caughtNM.x, caughtNM.y, maxNM.re, maxNM.im);
+		}
+
 		if (VS_GetCheckBox(CHECK_TRACK_X64)) {
 			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgPC.x, caughtOrgPC.y, caughtOrgPC.x + wantedSize, caughtOrgPC.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
 			caughtOrg = caughtOrgPC;
 			VS_Text("%d PC cx:%d cy:%d max:%f %f \r\n", currentFrame - startFrame, caughtPC.x, caughtPC.y, maxPC.re, maxPC.im);
 		}
 
-		if (VS_GetCheckBox(CHECK_TRACK_NMC)) {
-			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgNM.x + 1, caughtOrgNM.y + 1, caughtOrgNM.x + wantedSize - 1, caughtOrgNM.y + wantedSize - 1, VS_YELLOW, VS_NULL_COLOR);
-			caughtOrg = caughtOrgNM;
-			VS_Text("%d NM cx:%d cy:%d max:%f %f\r\n", currentFrame-startFrame, caughtNM.x, caughtNM.y,maxNM.re, maxNM.im);
-		}
-	
+		
 		_ASSERTE(caughtOrg.x >= 0);
 		_ASSERTE(caughtOrg.y >= 0);
 		_ASSERTE(caughtOrg.x < WIDTH);

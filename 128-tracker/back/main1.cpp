@@ -15,6 +15,41 @@
 Cmd_x86_to_nm1 cmdIn;
 Cmd_nm1_to_nm0 cmdOut = { 0,0 };
  
+#include "nmw/nmw-client.h"
+
+void buffer_release_listener(void *data, NMWBuffer *buffer) {
+	int *is_released = (int *)data;
+	*is_released = 1;
+}
+
+int g_is_released;
+NMWBufferListener buffer_listener;
+
+
+NMWSurface *nmwCreateSurfaceFromBuffer(NMWDisplay *display, void* buffer, int offset, int width, int height, int stride, int format) {
+	NMWShmemPool *shm = nmwCreateShmemPoolData(display, buffer, width * height * 4);
+	NMWBuffer *nmw_buffer = nmwCreateBuffer(shm, offset, width, height, stride, format);
+
+	g_is_released = 0;
+	buffer_listener.release = buffer_release_listener;
+	nmwBufferSetListener(nmw_buffer, &buffer_listener, &g_is_released);
+
+	NMWSurface *surface = nmwCreateSurface(display);
+	nmwSurfaceAttach(surface, nmw_buffer);
+	return surface;
+}
+
+void nmwDrawAll(NMWDisplay *display, NMWSurface *surface, int width, int height) {
+	nmwSurfaceDamage(surface, 0, 0, width, height);
+	nmwSurfaceCommit(surface);
+	while (g_is_released == 0) {
+		nmwDisplayDispatch(display);
+	}
+	g_is_released = 0;
+}
+
+
+
 
 __attribute__((section(".data.imu3"))) 	int ringBufferLo[DIM*DIM*2];
 __attribute__((section(".data.imu1"))) 	int ringBufferHi[DIM*DIM*2];
@@ -54,11 +89,10 @@ extern "C" {
 
 };
 //}
-
-#define VS_SAVE_IMAGE 
-//vsSaveImage
+#define NW "c:\\git\\nmw\\bin\\nmdisplay_source.nw"
+#define VS_SAVE_IMAGE vsSaveImage
 #define USE_SEMIHOSTING 1
-#define PRINT0(a)
+#define PRINT(...) printf(__VA_ARGS__)
 #define PRINT1(a) 
 #define PRINT2(a,b) 
 #define PRINT3(a,b,c) 
@@ -115,13 +149,35 @@ int main(){
 
 
 
+
+
+
+
 		
 	//ring_x86_to_nm1_img->data = (int*)ringBufferHi;
 	//ring_x86_to_nm1_img->init(32 * 1024);
 	if (USE_SEMIHOSTING)
 	for (int i = 0; i < 6; i++)
-		PRINT6("%d: ring:%08x data:%08x size:%8d id:%08x\n", i, (int)ring[i], (int)ring[i]->data, ring[i]->size, ring[i]->bufferId);
+		PRINT("%d: ring:%08x data:%08x size:%8d id:%08x\n", i, (int)ring[i], (int)ring[i]->data, ring[i]->size, ring[i]->bufferId);
 	
+
+
+	PRINT("NMW running ... \n");
+
+	NMWDisplay *display = nmwOpenDisplay(NW);
+
+	NMWSurface *surface[8];
+	for (int i = 0; i < 8; i++) {
+		//surface[i] = nmwCreateSurfaceFromBuffer(display, ring_x86_to_nm1_img->data + i * 256*256, 0, cmdIn.frmRoi.width, cmdIn.frmRoi.height, 0, NMW_FORMAT_GRAYSCALE_8);
+		//surface[i] = nmwCreateSurfaceFromBuffer(display, ring_x86_to_nm1_img->data + i * 256*256, 0, cmdIn.frmRoi.width, cmdIn.frmRoi.height, 0, NMW_FORMAT_GRAYSCALE_8);
+		memset(ring_x86_to_nm1_img->data+ i * 256 * 256 / 4, 0x456789, 256 * 256 / 4);
+		surface[i] = nmwCreateSurfaceFromBuffer(display, ring_x86_to_nm1_img->data + i * 256*256/4, 0, 256, 256, 0, NMW_FORMAT_GRAYSCALE_8);
+		//surface[i] = nmwCreateSurfaceFromBuffer(display, ring_x86_to_nm1_img->data + i * 256*256/4, 0, 256, 256, 0, NMW_FORMAT_XRGB_8888);
+		NMASSERT(surface[i]);
+		nmwDrawAll(display, surface[i], 256, 256);
+	}
+
+	//while (1);
 	halEnbExtInt();
 	halDmaInit();
 
@@ -148,47 +204,50 @@ int main(){
 	
 	cmdOut.command = 0x6407600D;
 	cmdOut.counter++;
-	PRINT0("Sending hanshake to nm1 ... \n");
+	PRINT("Sending hanshake to nm1 ... \n");
 	dtpSend(rbCmdToNm0, &cmdOut, sizeof32(cmdOut));
-	PRINT0("Waiting hanshake from x86 ... \n");
+	PRINT("Waiting hanshake from x86 ... \n");
 	dtpRecv(rbCmdToNm1, &cmdIn, sizeof32(cmdIn));
 	if (cmdIn.command == 0x64078086)
-		PRINT0("Handshake ok. Working ... \n");
+		PRINT("Handshake ok. Working ... \n");
 	else {
-		PRINT2("Handshake error %x\n", cmdIn.command);
+		PRINT("Handshake error %x\n", cmdIn.command);
 		return -1;
 	}
 	
+
 	
 	NmppSize imgDim = cmdIn.frmSize;
 	int imgSize32 = imgDim.height*imgDim.width/4;
-	PRINT2("imfSize32 =%d\n", imgSize32);
-	PRINT2("width     =%d\n", cmdIn.frmSize.width);
-	PRINT2("height    =%d\n", cmdIn.frmSize.height);
-	PRINT2("roi.width =%d\n", cmdIn.frmRoi.width);
-	PRINT2("roi.height=%d\n", cmdIn.frmRoi.height);
-	PRINT2("roi.x     =%d\n", cmdIn.frmRoi.x);
-	PRINT2("roi.y     =%d\n", cmdIn.frmRoi.y);
+	PRINT("imgSize32 =%d\n", imgSize32);
+	PRINT("width     =%d\n", cmdIn.frmSize.width);
+	PRINT("height    =%d\n", cmdIn.frmSize.height);
+	PRINT("roi.width =%d\n", cmdIn.frmRoi.width);
+	PRINT("roi.height=%d\n", cmdIn.frmRoi.height);
+	PRINT("roi.x     =%d\n", cmdIn.frmRoi.x);
+	PRINT("roi.y     =%d\n", cmdIn.frmRoi.y);
 
 	//int handshake[8];
 	//dtpRecv(rbImg, handshake, 8);
 	//for (int i = 0; i < 8; i++)
 	//	printf("% d\n", handshake[i]);
 	
-	PRINT0("Starting nm1 ... \n");
+		
+	
 
+	PRINT("NM1 running ... \n");
 
 	
 
 	while (1) {
 		//printf("<<< 1:\n");
 		dtpRecv(rbCmdToNm1, &cmdIn, sizeof32(cmdIn));
-		//PRINT4("--------- [in] cnt:%d cmd:0x%x frmIndex:%d------ \n", cmdIn.counter, cmdIn.command, cmdIn.frmIndex);
+		PRINT("--------- [in] cnt:%d cmd:0x%x frmIndex:%d------ \n", cmdIn.counter, cmdIn.command, cmdIn.frmIndex);
 
 		if (cmdIn.command == DO_FFT0 || cmdIn.command == DO_FFT1) {
 
 			while (cmdIn.frmIndex >= ring_x86_to_nm1_img->head ) {
-				PRINT3("ring_x86_to_nm1_img: head:%d tail:%d\n", ring_x86_to_nm1_img->head, ring_x86_to_nm1_img->tail);
+				PRINT("ring_x86_to_nm1_img: head:%d tail:%d\n", ring_x86_to_nm1_img->head, ring_x86_to_nm1_img->tail);
 			}
 
 			//cmdIn.frmIndex*imgSize32 +
@@ -198,29 +257,32 @@ int main(){
 			//if (cmdIn.frmRoi.x)
 			int *roi = ring_x86_to_nm1_img->data +cmdIn.frmIndex*imgSize32 + cmdIn.frmRoi.y*imgDim.width / 4 + cmdIn.frmRoi.x / 4;
 
+			nmwDrawAll(display, surface[cmdIn.frmIndex], cmdIn.frmRoi.width, cmdIn.frmRoi.height);
+
 			nm8s* blurRoi8s = (nm8s*)ringBufferLo;
-			//nm32s* imgAddr =
-			nm32s * imgAddr = ring_x86_to_nm1_img->data + cmdIn.frmIndex*imgSize32;
-			NMASSERT((int)imgAddr & 0x0F == 0);
-			int roi8Pos = cmdIn.frmRoi.y*imgDim.width  + cmdIn.frmRoi.x;	// byte position 
-			int roi32PosBase = (roi8Pos / 4) & 0xFFFF0;						// 16x-aligned word position
-			int roi32PosDisp = roi8Pos - roi32PosBase * 4;					// byte offset from aligned 
-			int roi32EndBase = (cmdIn.frmRoi.y*imgDim.width + cmdIn.frmRoi.x + cmdIn.frmRoi.width) / 4; // right out off roi word position
-			roi32EndBase = (roi32EndBase + 15)0xFFF0; // 16-x aligned word position of out off roi
-
-		//		NmppRect srcDma;
-	//		srcDma.
-//
-
-				//, "srcAdrres not aligned");
 			if (cmdIn.command == DO_FFT0)
 				nmppsSet_8s(0, blurRoi8s, DIM*DIM);
-			//halDma2D_Start(roi, blurRoi8s, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM/4);
-			
-			halDma2D_Start(roiPos, blurRoi8s, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM/4);
+			halDma2D_Start(roi, blurRoi8s, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM/4);
+			while (!halDma2D_IsCompleted());// {
+
+			//nm32s * imgAddr = ring_x86_to_nm1_img->data + cmdIn.frmIndex*imgSize32;
+			//NMASSERT((int)imgAddr & 0x0F == 0);
+			//int roi8Pos = cmdIn.frmRoi.y*imgDim.width  + cmdIn.frmRoi.x;	// roi byte-position 
+			//int roi8PosAligned64 = roi8Pos  & 0xFFFC0;						// 64-byte-aligned roi byte-position
+			//int roi32PosBase = roi8PosAligned64 >>2;						// 64-byte-aligned roi word-position
+			//int roi32PosDisp = roi8Pos - roi8PosAligned64;					// byte-offset from aligned position
+			//
+			//int roi8End = roi8Pos + cmdIn.frmRoi.width;						// right from roi byte-position
+			//int roi8EndAligned64 = (roi8End + 63)&0xFFC0;					// 64-byte-aligned byte-position of right from roi 
+			//int roi32EndBase = roi8EndAligned64>>2;							// word-offset from aligned position
+			//int roi32Width   = roi32EndBase - roi32PosBase;
+			//int roi32Size = roi32Width * cmdIn.frmRoi.height;
+
+			//int* srcDma = ring_x86_to_nm1_img->data + roi32PosBase;
+			//int* dstDma = ringBufferLo;
+			//halDma2D_Start(srcDma, dstDma, roi32Size, roi32Width, cmdIn.frmSize.width / 4, roi32Size);
 			
 			//mdelay(10);
-			while (!halDma2D_IsCompleted());// {
 			//	printf(".");
 			//};
 			
@@ -243,10 +305,14 @@ int main(){
 			
 
 			
-			if (cmdIn.command == DO_FFT0 )	
-				VS_SAVE_IMAGE("1_FFT0_8s.vsimg", blurRoi8s, DIM, DIM, VS_RGB8_8);
-			else				
-				VS_SAVE_IMAGE("1_FFT1_8s.vsimg", blurRoi8s, DIM, DIM, VS_RGB8_8);
+			//if (cmdIn.command == DO_FFT0) {
+			//	VS_SAVE_IMAGE("1_roi0_8s.vsimg", ring_x86_to_nm1_img->data + cmdIn.frmIndex*imgSize32, cmdIn.frmSize.width, cmdIn.frmSize.height, VS_RGB8_8);
+			//	VS_SAVE_IMAGE("1_FFT0_8s.vsimg", blurRoi8s, DIM, DIM, VS_RGB8_8);
+			//}
+			//else {
+			//	VS_SAVE_IMAGE("1_roi1_8s.vsimg", ring_x86_to_nm1_img->data + cmdIn.frmIndex*imgSize32, cmdIn.frmSize.width, cmdIn.frmSize.height, VS_RGB8_8);
+			//	VS_SAVE_IMAGE("1_FFT1_8s.vsimg", blurRoi8s, DIM, DIM, VS_RGB8_8);
+			//}
 			int *tail=ring_x86_to_nm1_img->ptrTail();
 			//memcpy(ringBufferLo, roi, DIM*DIM / 4);
 			//printf("%x %x %d\n", roi, tail, cmdIn.frmIndex);
@@ -258,10 +324,10 @@ int main(){
 			//nm8u* img8u= (nm8u*)ringBufferLo;
 			//nm8s* img8s= (nm8s*)ringBufferLo;
 			
-		//if (cmdIn.command== DO_FFT0)
-		//	vsSaveImage("fft0_in8s.img", blurRoi8s, DIM, DIM, VS_RGB8_8);
-		//else 
-		//	vsSaveImage("fft1_in8s.img", blurRoi8s, DIM, DIM, VS_RGB8_8);
+		if (cmdIn.command== DO_FFT0)
+			vsSaveImage("fft0_in8s.img", blurRoi8s, DIM, DIM, VS_RGB8_8);
+		else 
+			vsSaveImage("fft1_in8s.img", blurRoi8s, DIM, DIM, VS_RGB8_8);
 		
 		//	//nmppsSet_8u(0, img8u,DIM*DIM);
 		//	//---------------------------------------
@@ -285,7 +351,7 @@ int main(){
 			nm32s* blurRoi32s = ring_nm1_to_nm0_diff->ptrHead();
 			
 			while (ring_nm1_to_nm0_diff->isFull()) 
-				PRINT("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff->head, ring_nm1_to_nm0_diff->tail);
+				PRINT("ring_nm1_to_nm0_diff:full head:%d tail:%d\n", ring_nm1_to_nm0_diff->head, ring_nm1_to_nm0_diff->tail);
 			//dump_8s("%d ", blurRoi8s, 16, 16, DIM, 0);
 			//printf("---\n");
 			//dump_8s("%d ", blurRoi8s, 16, 16, DIM, 0);

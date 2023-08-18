@@ -76,7 +76,8 @@ __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm1_to_n
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm0_to_nm1_corr;
 
 __attribute__((section(".data.shmem0")))  int data_x86_to_nm1_cmd[16 * 16 ]; //sizeof32(Cmd_x86_to_nm1)
-__attribute__((section(".data.emi.bss"))) int data_x86_to_nm1_img[2*1024 * 256 * 256 / 4];
+//__attribute__((section(".data.emi.bss"))) int data_x86_to_nm1_img[2*1024 * 256 * 256 / 4];
+__attribute__((section(".data.emi.bss"))) int data_x86_to_nm1_img[8 * 640 * 360 / 4];
 __attribute__((section(".data.emi")))     int data_nm1_to_x86_out[2 * DIM*DIM * 2]; // declared on nm1 
 __attribute__((section(".data.shmem0")))  int data_nm1_to_nm0_cmd[16 * sizeof(Cmd_nm1_to_nm0)];
 __attribute__((section(".data.imu6")))    int data_nm1_to_nm0_diff[2 * DIM*DIM];
@@ -138,7 +139,8 @@ int* toLocal0(void* addr) {
 //#define PRINT5(a,b,c,d,e) 
 //#define PRINT6(a,b,c,d,f,g) 
 
-#define PRINT0				printf
+#define PRINT(...) printf(__VA_ARGS__)
+//#define PRINT0				printf
 #define PRINT1(a) 				printf(a) 
 #define PRINT2(a,b) 			printf(a,b) 
 #define PRINT3(a,b,c) 			printf(a,b,c) 
@@ -146,7 +148,6 @@ int* toLocal0(void* addr) {
 #define PRINT5(a,b,c,d,e) 		printf(a,b,c,d,e) 
 #define PRINT6(a,b,c,d,f,g) 	printf(a,b,c,d,f,g) 
 
-#define PRINT
 
 //printf 
 
@@ -156,7 +157,9 @@ int* toLocal0(void* addr) {
 __attribute__((section(".text.nmpp")))
 int main()
 {
-	PRINT0("Starting nm1 ... \n");
+
+	memset(data_x86_to_nm1_img, 0x12345678, sizeof(data_x86_to_nm1_img));
+	PRINT("Starting nm0 ... \n");
 	
 	DISABLE_SYS_TIMER()
 	
@@ -240,20 +243,20 @@ int main()
 
 	
 	Cmd_nm1_to_nm0 cmd;
-	PRINT0("Waiting handshake ... \n");
+	PRINT("Waiting handshake ... \n");
 	dtpRecv(rbCmd, &cmd, sizeof32(cmd));
 	if (cmd.command == 0x6407600D)
-		PRINT0("Handshake with nm1 - ok. Working ... \n");
+		PRINT("Handshake with nm1 - ok \n");
 	else {
 		//PRINT0("Handshake with nm1 - error %d\n",cmd.command);
-		PRINT0("Handshake with nm1 - error \n");
+		PRINT("Handshake with nm1 - error \n");
 		return -1;
 	}
 	long long sz= ring_x86_to_nm1_img.size;
 	//dtpSend(rbTo86, &ring_x86_to_nm1_img.size, 1);
 	dtpSend(rbTo86, &sz, 2);
 	
-
+	PRINT("NM0 - running ....\n");
 	
 	while (1){
 		
