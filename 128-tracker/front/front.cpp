@@ -24,11 +24,12 @@
 #define VS_TEXT
 #define LOG2DIM 7
 #define START_FRAME 1
-#define MC12101 1
+#define MC12101 0
+#define ALIGN 0xFFFF
 #define MAX_CACHE_FRAMES 0x1000
+#define SCRIPT 0
 //#define AVI "..\\..\\..\\Samples\\Road2_256x256(xvid).avi"
 #define AVI "..\\..\\..\\Samples\\strike_640x360(xvid).avi"
-#define ALIGN 0xFFF8
 //#define AVI "..\\..\\..\\Samples\\victory22_384x360(xvid).avi"
 //#define AVI "../Samples/strike(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\victory22_360x360(xvid).avi"
@@ -389,7 +390,7 @@ int main()
 		 	blurSize   = VS_GetSlider(SLIDER_BLUR_SIZE);
 		
 		
-		switch (currentFrame) {
+		if (SCRIPT )switch (currentFrame) {
 		case 1:				caughtOrg = { 29, 161 }; VS_SetSlider(SLIDER_WANTED_SIZE, 32); break;
 		case 50:				                     VS_SetSlider(SLIDER_WANTED_SIZE, 48); break;
 		//case 100:				caughtOrg = { 29, 161 }; VS_SetSlider(SLIDER_WANTED_SIZE, 32); break;
@@ -427,11 +428,12 @@ int main()
 				//wantedOrg.x = MouseStatus.nX>>3<<3;
 				wantedOrg.x = MouseStatus.nX&ALIGN;
 				wantedOrg.y = MouseStatus.nY;
-				// currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2  - DIM / 2)) >> 3 << 3;
-				// currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2  - DIM / 2)) >> 3 << 3;
-				// currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2  - DIM / 2));
-				currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2  - DIM / 2))&ALIGN;
+				//currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2  - DIM / 2))&ALIGN;
+				//currFrame.y = MIN(HEIGHT - DIM, MAX(0, wantedOrg.y + wantedSize / 2 - DIM / 2));
+
+				currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2 - DIM / 2))&ALIGN;
 				currFrame.y = MIN(HEIGHT - DIM, MAX(0, wantedOrg.y + wantedSize / 2 - DIM / 2));
+
 				caughtOrg   = wantedOrg;
 			}
 		}
