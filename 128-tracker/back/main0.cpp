@@ -76,10 +76,9 @@ __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm1_to_n
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm0_to_nm1_corr;
 
 __attribute__((section(".data.shmem0")))  int data_x86_to_nm1_cmd[16 * 16 ]; //sizeof32(Cmd_x86_to_nm1)
-//__attribute__((section(".data.emi.bss"))) int data_x86_to_nm1_img[2*1024 * 256 * 256 / 4];
-__attribute__((section(".data.emi.bss"))) int data_x86_to_nm1_img[8 * 640 * 360 / 4];
+__attribute__((section(".data.emi.bss"))) int data_x86_to_nm1_img[128 * 512 * 512 / 4];
 __attribute__((section(".data.emi")))     int data_nm1_to_x86_out[2 * DIM*DIM * 2]; // declared on nm1 
-__attribute__((section(".data.shmem0")))  int data_nm1_to_nm0_cmd[16 * sizeof(Cmd_nm1_to_nm0)];
+__attribute__((section(".data.shmem0")))  int data_nm1_to_nm0_cmd[1024]; //sizeof(Cmd_nm1_to_nm0)];
 __attribute__((section(".data.imu6")))    int data_nm1_to_nm0_diff[2 * DIM*DIM];
 __attribute__((section(".data.imu7")))	  int data_nm0_to_nm1_corr[2 * DIM*DIM];
 
@@ -90,26 +89,8 @@ void* nmppsCopy_32f_(void* src, void* dst, unsigned size) {
 	//return (int*)dst+size;
 	return 0;
 }
-/*
-extern "C" void halSleep( int) {
-	
-}*/
 
 
-static void* memCopyPop(const void *src, void *dst, unsigned int size32) {
-	if (size32 & 1)
-		memcpy(dst, src, size32 * sizeof(int));
-	else
-		nmppsCopy_32f((nm32f*)src, (nm32f*)dst, size32);
-	return 0;
-}
-static void* memCopyPush(const void *src, void *dst, unsigned int size32) {
-	//memcpy(dst, src, size32 * sizeof(int));
-	if (((int)src & 1 )||( (int)dst & 1 )||( size32 & 1))
-		printf("error\n");
-	nmppsCopy_32f((nm32f*)src, (nm32f*)dst, size32);
-	return 0;
-}
 
 extern "C" void DisableInterrupts_IMR_Low(int);
 
@@ -131,15 +112,9 @@ int* toLocal0(void* addr) {
 #define USE_SEMIHOSTING 1
 
 
-//#define PRINT0(a)
-//#define PRINT1(a) 
-//#define PRINT2(a,b) 
-//#define PRINT3(a,b,c) 
-//#define PRINT4(a,b,c,d) 
-//#define PRINT5(a,b,c,d,e) 
-//#define PRINT6(a,b,c,d,f,g) 
-
 #define PRINT(...) printf(__VA_ARGS__)
+#define PRINTRT(...) 
+//printf(__VA_ARGS__)
 //#define PRINT0				printf
 #define PRINT1(a) 				printf(a) 
 #define PRINT2(a,b) 			printf(a,b) 
@@ -157,8 +132,6 @@ int* toLocal0(void* addr) {
 __attribute__((section(".text.nmpp")))
 int main()
 {
-
-	memset(data_x86_to_nm1_img, 0x12345678, sizeof(data_x86_to_nm1_img));
 	PRINT("Starting nm0 ... \n");
 	
 	DISABLE_SYS_TIMER()
@@ -207,15 +180,17 @@ int main()
 	memset(ring_nm1_to_x86_out.data, 0, ring_nm1_to_x86_out.size);
 
 	for (int i = 0; i < 6; i++)
-		PRINT6 ("%d: ring:%08x data:%08x size:%8d id:%08x\n", i, (int)ring[i], (int)ring[i]->data, ring[i]->size, ring[i]->bufferId);
+		PRINT ("%d: ring:%08x data:%08x size:%8d id:%08x\n", i, (int)ring[i], (int)ring[i]->data, ring[i]->size, ring[i]->bufferId);
 
 
 	//--------------pc-nm0----------------
 
-	int rbCmd     = dtpOpenRingbuffer(&ring_nm1_to_nm0_cmd,  memCopyPush, memCopyPop);
+	//int rbCmd     = dtpOpenRingbuffer(&ring_nm1_to_nm0_cmd,  memCopyPush, memCopyPop);
+	int rbCmd     = dtpOpenRingbufferDefault(&ring_nm1_to_nm0_cmd);
 	//int rbDiff    = dtpOpenRingbuffer(&ring_nm1_to_nm0_diff, memCopyPush, memCopyPop);
 	//int rbCorr    = dtpOpenRingbuffer(&ring_nm0_to_nm1_corr, memCopyPush, memCopyPop);
-	int rbTo86    = dtpOpenRingbuffer(&ring_nm1_to_x86_out, memCopyPush, memCopyPop);
+	//int rbTo86    = dtpOpenRingbuffer(&ring_nm1_to_x86_out, memCopyPush, memCopyPop);
+	int rbTo86    = dtpOpenRingbufferDefault(&ring_nm1_to_x86_out);
 
 
 	//---------- fwd spec ----------
@@ -235,13 +210,7 @@ int main()
 	specInv.Buffs[3] = invBuffer3;
 	nmppsFFT128InvInit_32fcr(&specInv); // инициализация БПФ
 
-
-	
-	
 	//clock_t t0, t1;
-
-
-	
 	Cmd_nm1_to_nm0 cmd;
 	PRINT("Waiting handshake ... \n");
 	dtpRecv(rbCmd, &cmd, sizeof32(cmd));
@@ -263,11 +232,11 @@ int main()
 		//t1 = clock();
 		
 		dtpRecv(rbCmd,&cmd, sizeof32(Cmd_nm1_to_nm0));
-		PRINT("in: %d 0x%x\n", cmd.counter, cmd.command);
+		PRINTRT("in: %d 0x%x\n", cmd.counter, cmd.command);
 		if (cmd.command == DO_FFT0) {
-			PRINT("out: DO_FFT0\n");
+			PRINTRT("out: DO_FFT0\n");
 			while (ring_nm1_to_nm0_diff.isEmpty())
-				PRINT3("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff.head, ring_nm1_to_nm0_diff.tail);
+				PRINT("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff.head, ring_nm1_to_nm0_diff.tail);
 
 			nm32s* in = toLocal0(ring_nm1_to_nm0_diff.ptrTail());
 			//printf("---32s-\n");
@@ -302,7 +271,7 @@ int main()
 
 		}
 		else if (cmd.command == DO_FFT1) {
-			PRINT("out: DO_FFT1\n");
+			PRINTRT("out: DO_FFT1\n");
 			//while (ring_nm1_to_nm0_diff.isEmpty())
 			//	PRINT0("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff.head, ring_nm1_to_nm0_diff.tail);
 
@@ -398,9 +367,31 @@ int main()
 			
 		}
 		else {
-			PRINT3("%d command:%d\n", cmd.counter, cmd.command);
+			PRINT("%d command:%d\n", cmd.counter, cmd.command);
 		}
 
 		//t0 = clock();
 	}
+	vsReadImage(0, 0, 0, 0, 0);
+	vsWriteImage(0, 0, 0, 0, 0);
 }
+
+
+/*
+extern "C" void halSleep( int) {
+
+static void* memCopyPop(const void *src, void *dst, unsigned int size32) {
+	if (size32 & 1)
+		memcpy(dst, src, size32 * sizeof(int));
+	else
+		nmppsCopy_32f((nm32f*)src, (nm32f*)dst, size32);
+	return 0;
+}
+static void* memCopyPush(const void *src, void *dst, unsigned int size32) {
+	//memcpy(dst, src, size32 * sizeof(int));
+	if (((int)src & 1 )||( (int)dst & 1 )||( size32 & 1))
+		printf("error\n");
+	nmppsCopy_32f((nm32f*)src, (nm32f*)dst, size32);
+	return 0;
+}
+}*/

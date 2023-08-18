@@ -21,12 +21,13 @@
 #include "hal/ringbuffert.h"
 //#include "hadamard.h"
 
-
+#define VS_TEXT
 #define LOG2DIM 7
 #define START_FRAME 1
 #define MC12101 1
-#define MAX_CACHE_FRAMES 8
-#define AVI "..\\..\\..\\Samples\\Road2_256x256(xvid).avi"
+#define MAX_CACHE_FRAMES 0x1000
+//#define AVI "..\\..\\..\\Samples\\Road2_256x256(xvid).avi"
+#define AVI "..\\..\\..\\Samples\\strike_640x360(xvid).avi"
 #define ALIGN 0xFFF8
 //#define AVI "..\\..\\..\\Samples\\victory22_384x360(xvid).avi"
 //#define AVI "../Samples/strike(xvid).avi"
@@ -34,7 +35,6 @@
 //#define AVI "..\\..\\..\\Samples\\Su25_720x720(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\Su25_256x256(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\Trooping the Colour Flypast 2023_640x360(xvid).avi"
-//#define AVI "..\\..\\..\\Samples\\strike_640x360(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\strike(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\strike256(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\victory22_384x360(xvid).avi"
@@ -492,6 +492,10 @@ int main()
 			///wantedOrgOffsetX = wantedOrg.x % 8;
 			///wantedOrg.x >>=3;
 			///wantedOrg.x <<=3;
+			wantedOrg.x += wantedOrgOffsetX; // compensation from prev step offset
+			wantedOrgOffsetX = wantedOrg.x &~ALIGN;
+			wantedOrg.x &=ALIGN;
+			
 		}
 	
 		//ippiSuperSampling_8u_C1R(currOrigin8u, WIDTH, srcRoiSize, currOrigin8u, dim, dimRoiSize, buffer);
@@ -556,8 +560,8 @@ int main()
 					currImage8s[k] = blurDiff;
 				}
 			}
-			vsSaveImage("../back/pcwant.vsimg", wantedImage_fcr, DIM, DIM, VS_RGB32FC);
-			vsSaveImage("../back/pccurr.vsimg", currImage_fcr, DIM, DIM, VS_RGB32FC);
+			vsWriteImage("../back/pcwant.vsimg", wantedImage_fcr, DIM, DIM, VS_RGB32FC);
+			vsWriteImage("../back/pccurr.vsimg", currImage_fcr, DIM, DIM, VS_RGB32FC);
 			//VS_SetData(CURR_IMG_FC, currImage_fcr);
 
 			// ----------forward fft ----------------
@@ -596,7 +600,7 @@ int main()
 			nmppsConjMul_32fcr(currFFT_fcr, wantedFFT_fcr, productFFT_fcr, DIM*DIM);
 
 			//dump_32f("%f ", (nm32f*)productFFT_fcr, 16, 16, DIM * 2, 0);
-			//vsSaveImage("../back/pcProfuctFFT.vsimg", productFFT_fcr, DIM, DIM, VS_RGB32FC);
+			//vsWriteImage("../back/pcProfuctFFT.vsimg", productFFT_fcr, DIM, DIM, VS_RGB32FC);
 			//VS_SetData(332, productFFT_fcr);
 
 			//----------- inverse fft-------------- 
@@ -608,7 +612,7 @@ int main()
 
 
 
-			//vsSaveImage("../back/pcIFFT.vsimg", productIFFT_fcr, DIM, DIM, VS_RGB32FC);
+			//vsWriteImage("../back/pcIFFT.vsimg", productIFFT_fcr, DIM, DIM, VS_RGB32FC);
 
 			VS_SetData(IFFT_IMG, productIFFT_fcr);
 
@@ -740,13 +744,13 @@ int main()
 		if (VS_GetCheckBox(CHECK_TRACK_NMC)) {
 			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgNM.x + 1, caughtOrgNM.y + 1, caughtOrgNM.x + wantedSize - 1, caughtOrgNM.y + wantedSize - 1, VS_YELLOW, VS_NULL_COLOR);
 			caughtOrg = caughtOrgNM;
-			VS_Text("%d NM cx:%d cy:%d max:%f %f\r\n", currentFrame - startFrame, caughtNM.x, caughtNM.y, maxNM.re, maxNM.im);
+			VS_TEXT("%d NM cx:%d cy:%d max:%f %f\r\n", currentFrame - startFrame, caughtNM.x, caughtNM.y, maxNM.re, maxNM.im);
 		}
 
 		if (VS_GetCheckBox(CHECK_TRACK_X64)) {
 			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgPC.x, caughtOrgPC.y, caughtOrgPC.x + wantedSize, caughtOrgPC.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
 			caughtOrg = caughtOrgPC;
-			VS_Text("%d PC cx:%d cy:%d max:%f %f \r\n", currentFrame - startFrame, caughtPC.x, caughtPC.y, maxPC.re, maxPC.im);
+			VS_TEXT("%d PC cx:%d cy:%d max:%f %f \r\n", currentFrame - startFrame, caughtPC.x, caughtPC.y, maxPC.re, maxPC.im);
 		}
 
 		

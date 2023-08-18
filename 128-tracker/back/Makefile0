@@ -34,7 +34,7 @@ $(TARGETD): $(SOURCES) Makefile mc12101-nmpu0.lds
 	nmc-objdump -D $(TARGETD) > dasm0d.txt
 
 
-run:  $(TARGET) 
+run:   $(TARGET) 
 	mc12101run -p -R -a0 -v $(TARGET) 
 
 runs:  $(TARGET) 

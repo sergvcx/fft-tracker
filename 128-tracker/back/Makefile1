@@ -21,7 +21,7 @@ SOURCES  = ../../back/main1.cpp
 
 .DEFAULT_GOAL := all
 
-all: $(TARGET) $(TARGETD)
+all: $(TARGET) 
 
 $(TARGET): $(SOURCES) Makefile mc12101-nmpu1.lds 
 	@echo ------ build release --------------

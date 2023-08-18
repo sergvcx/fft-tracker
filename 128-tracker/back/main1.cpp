@@ -15,6 +15,7 @@
 Cmd_x86_to_nm1 cmdIn;
 Cmd_nm1_to_nm0 cmdOut = { 0,0 };
  
+/*
 #include "nmw/nmw-client.h"
 
 void buffer_release_listener(void *data, NMWBuffer *buffer) {
@@ -47,7 +48,7 @@ void nmwDrawAll(NMWDisplay *display, NMWSurface *surface, int width, int height)
 	}
 	g_is_released = 0;
 }
-
+*/
 
 
 
@@ -56,33 +57,11 @@ __attribute__((section(".data.imu1"))) 	int ringBufferHi[DIM*DIM*2];
 //__attribute__((section(".data.imu2"))) 	int ringBufferHi2[DIM*DIM* 2];
 
 #define FULL_BANK 32*1024 // 128kB
-#define PRINT 
+//#define PRINT 
 //printf
 //__attribute__((section(".data.imu3"))) int x86_to_nm1_buffer[FULL_BANK];
 
 
-static void* memCopyPop(const void *src, void *dst, unsigned int size32) {
-	//if ((int)src & 1 || (int)dst & 1 || size32 & 1)
-	//	printf("error\n");
-	//printf("%08x %08x %8d\n", src, dst, size32);
-	if (size32&1 || size32<4)
-		memcpy(dst, src, size32 * sizeof(int));
-	else {
-		memcpy(dst, src, size32 * sizeof(int));
-		//nmppsCopy_32s((nm32s*)src,(nm32s*) dst, size32);
-		//halDmaStart(src, dst, size32);
-		
-		//while (!halDmaIsCompleted());
-	}
-	return 0;
-}
-static void* memCopyPush(const void *src, void *dst, unsigned int size32) {
-	//memcpy(dst, src, size32 * sizeof(int));
-	if ((int)src & 1 || (int)dst & 1 || size32 & 1)
-		printf("error\n");
-	nmppsCopy_32s((nm32s*)src,(nm32s*) dst, size32);
-	return 0;
-}
 
 extern "C" {
 	void mdelay(int);
@@ -93,6 +72,9 @@ extern "C" {
 #define VS_SAVE_IMAGE vsSaveImage
 #define USE_SEMIHOSTING 1
 #define PRINT(...) printf(__VA_ARGS__)
+#define PRINTRT(...) 
+//printf(__VA_ARGS__)
+
 #define PRINT1(a) 
 #define PRINT2(a,b) 
 #define PRINT3(a,b,c) 
@@ -132,12 +114,12 @@ int main(){
 		dtpClose(file_desc);
 	}
 	else {
-		ring[0]=0x000a8184;// data : 000a8020 size : 256 id : 8601cdcd
-		ring[1]=0x000a8170;// data : 20022286 size : 8388608 id : 8601b00f
-		ring[2]=0x000a815c;// data : 20012286 size : 65536 id : 0186b00f
-		ring[3]=0x000a8148;// data : 000a8000 size : 32 id : 0100cdcd
-		ring[4]=0x000a8134;// data : 00070000 size : 32768 id : 0100deef
-		ring[5]=0x000a8120;// data : 00078000 size : 32768 id : 0001beef
+		ring[0]=(HalRingBufferData<int, 2>*) 0x000a8184;// data : 000a8020 size : 256 id : 8601cdcd
+		ring[1]=(HalRingBufferData<int, 2>*) 0x000a8170;// data : 20022286 size : 8388608 id : 8601b00f
+		ring[2]=(HalRingBufferData<int, 2>*) 0x000a815c;// data : 20012286 size : 65536 id : 0186b00f
+		ring[3]=(HalRingBufferData<int, 2>*) 0x000a8148;// data : 000a8000 size : 32 id : 0100cdcd
+		ring[4]=(HalRingBufferData<int, 2>*) 0x000a8134;// data : 00070000 size : 32768 id : 0100deef
+		ring[5]=(HalRingBufferData<int, 2>*) 0x000a8120;// data : 00078000 size : 32768 id : 0001beef
 	}
 
 	HalRingBufferData<int, 2>* ring_x86_to_nm1_cmd = ring[0];
@@ -164,19 +146,19 @@ int main(){
 
 	PRINT("NMW running ... \n");
 
-	NMWDisplay *display = nmwOpenDisplay(NW);
-
-	NMWSurface *surface[8];
-	for (int i = 0; i < 8; i++) {
-		//surface[i] = nmwCreateSurfaceFromBuffer(display, ring_x86_to_nm1_img->data + i * 256*256, 0, cmdIn.frmRoi.width, cmdIn.frmRoi.height, 0, NMW_FORMAT_GRAYSCALE_8);
-		//surface[i] = nmwCreateSurfaceFromBuffer(display, ring_x86_to_nm1_img->data + i * 256*256, 0, cmdIn.frmRoi.width, cmdIn.frmRoi.height, 0, NMW_FORMAT_GRAYSCALE_8);
-		memset(ring_x86_to_nm1_img->data+ i * 256 * 256 / 4, 0x456789, 256 * 256 / 4);
-		surface[i] = nmwCreateSurfaceFromBuffer(display, ring_x86_to_nm1_img->data + i * 256*256/4, 0, 256, 256, 0, NMW_FORMAT_GRAYSCALE_8);
-		//surface[i] = nmwCreateSurfaceFromBuffer(display, ring_x86_to_nm1_img->data + i * 256*256/4, 0, 256, 256, 0, NMW_FORMAT_XRGB_8888);
-		NMASSERT(surface[i]);
-		nmwDrawAll(display, surface[i], 256, 256);
-	}
-
+	//NMWDisplay *display = nmwOpenDisplay(NW);
+	//
+	//NMWSurface *surface[8];
+	//for (int i = 0; i < 8; i++) {
+	//	//surface[i] = nmwCreateSurfaceFromBuffer(display, ring_x86_to_nm1_img->data + i * 256*256, 0, cmdIn.frmRoi.width, cmdIn.frmRoi.height, 0, NMW_FORMAT_GRAYSCALE_8);
+	//	//surface[i] = nmwCreateSurfaceFromBuffer(display, ring_x86_to_nm1_img->data + i * 256*256, 0, cmdIn.frmRoi.width, cmdIn.frmRoi.height, 0, NMW_FORMAT_GRAYSCALE_8);
+	//	memset(ring_x86_to_nm1_img->data+ i * 256 * 256 / 4, 0x456789, 256 * 256 / 4);
+	//	surface[i] = nmwCreateSurfaceFromBuffer(display, ring_x86_to_nm1_img->data + i * 256*256/4, 0, 256, 256, 0, NMW_FORMAT_GRAYSCALE_8);
+	//	//surface[i] = nmwCreateSurfaceFromBuffer(display, ring_x86_to_nm1_img->data + i * 256*256/4, 0, 256, 256, 0, NMW_FORMAT_XRGB_8888);
+	//	NMASSERT(surface[i]);
+	//	nmwDrawAll(display, surface[i], 256, 256);
+	//}
+	//
 	//while (1);
 	halEnbExtInt();
 	halDmaInit();
@@ -242,7 +224,7 @@ int main(){
 	while (1) {
 		//printf("<<< 1:\n");
 		dtpRecv(rbCmdToNm1, &cmdIn, sizeof32(cmdIn));
-		PRINT("--------- [in] cnt:%d cmd:0x%x frmIndex:%d------ \n", cmdIn.counter, cmdIn.command, cmdIn.frmIndex);
+		PRINTRT("--------- [in] cnt:%d cmd:0x%x frmIndex:%d------ \n", cmdIn.counter, cmdIn.command, cmdIn.frmIndex);
 
 		if (cmdIn.command == DO_FFT0 || cmdIn.command == DO_FFT1) {
 
@@ -257,7 +239,7 @@ int main(){
 			//if (cmdIn.frmRoi.x)
 			int *roi = ring_x86_to_nm1_img->data +cmdIn.frmIndex*imgSize32 + cmdIn.frmRoi.y*imgDim.width / 4 + cmdIn.frmRoi.x / 4;
 
-			nmwDrawAll(display, surface[cmdIn.frmIndex], cmdIn.frmRoi.width, cmdIn.frmRoi.height);
+			//nmwDrawAll(display, surface[cmdIn.frmIndex], cmdIn.frmRoi.width, cmdIn.frmRoi.height);
 
 			nm8s* blurRoi8s = (nm8s*)ringBufferLo;
 			if (cmdIn.command == DO_FFT0)
@@ -313,7 +295,7 @@ int main(){
 			//	VS_SAVE_IMAGE("1_roi1_8s.vsimg", ring_x86_to_nm1_img->data + cmdIn.frmIndex*imgSize32, cmdIn.frmSize.width, cmdIn.frmSize.height, VS_RGB8_8);
 			//	VS_SAVE_IMAGE("1_FFT1_8s.vsimg", blurRoi8s, DIM, DIM, VS_RGB8_8);
 			//}
-			int *tail=ring_x86_to_nm1_img->ptrTail();
+			//int *tail=ring_x86_to_nm1_img->ptrTail();
 			//memcpy(ringBufferLo, roi, DIM*DIM / 4);
 			//printf("%x %x %d\n", roi, tail, cmdIn.frmIndex);
 			
@@ -324,10 +306,10 @@ int main(){
 			//nm8u* img8u= (nm8u*)ringBufferLo;
 			//nm8s* img8s= (nm8s*)ringBufferLo;
 			
-		if (cmdIn.command== DO_FFT0)
-			vsSaveImage("fft0_in8s.img", blurRoi8s, DIM, DIM, VS_RGB8_8);
-		else 
-			vsSaveImage("fft1_in8s.img", blurRoi8s, DIM, DIM, VS_RGB8_8);
+		//if (cmdIn.command== DO_FFT0)
+		//	vsSaveImage("fft0_in8s.img", blurRoi8s, DIM, DIM, VS_RGB8_8);
+		//else 
+		//	vsSaveImage("fft1_in8s.img", blurRoi8s, DIM, DIM, VS_RGB8_8);
 		
 		//	//nmppsSet_8u(0, img8u,DIM*DIM);
 		//	//---------------------------------------
@@ -359,10 +341,10 @@ int main(){
 			nmppsConvert_8s32s(blurRoi8s, blurRoi32s, DIM*DIM);
 			//dump_32s("%d ", blurRoi32s, 16, 16, DIM, 0);
 
-			if (cmdIn.command == DO_FFT0)
-				VS_SAVE_IMAGE("1_FFT0_32s.vsimg", blurRoi32s, DIM, DIM, VS_RGB8_32);
-			else
-				VS_SAVE_IMAGE("1_FFT1_32s.vsimg", blurRoi32s, DIM, DIM, VS_RGB8_32);
+			//if (cmdIn.command == DO_FFT0)
+			//	VS_SAVE_IMAGE("1_FFT0_32s.vsimg", blurRoi32s, DIM, DIM, VS_RGB8_32);
+			//else
+			//	VS_SAVE_IMAGE("1_FFT1_32s.vsimg", blurRoi32s, DIM, DIM, VS_RGB8_32);
 
 			//nmppsRShiftC_32s(blurImage32s, 7, toNM0, DIM*DIM);
 
@@ -384,14 +366,14 @@ int main(){
 			ring_nm1_to_nm0_diff->head+=DIM*DIM;
 			cmdOut.counter++;
 			cmdOut.command = cmdIn.command;
-			PRINT("out:%d 0x%x\n", cmdOut.counter, cmdOut.command);
+			PRINTRT("out:%d 0x%x\n", cmdOut.counter, cmdOut.command);
 			dtpSend(rbCmdToNm0, &cmdOut, sizeof32(Cmd_nm1_to_nm0));
 		}
 		
 		else if (cmdIn.command == DO_CORR) {
 			cmdOut.counter++;
 			cmdOut.command = DO_CORR;
-			PRINT("out:%d 0x%x\n", cmdOut.counter, cmdOut.command);
+			PRINTRT("out:%d 0x%x\n", cmdOut.counter, cmdOut.command);
 			dtpSend(rbCmdToNm0, &cmdOut, sizeof32(Cmd_nm1_to_nm0));
 		}
 		else{
@@ -411,4 +393,34 @@ int main(){
 
 	
     return 0;
+	vsReadImage(0, 0, 0, 0, 0);
+
+
 }
+
+
+
+/*
+static void* memCopyPop(const void *src, void *dst, unsigned int size32) {
+	//if ((int)src & 1 || (int)dst & 1 || size32 & 1)
+	//	printf("error\n");
+	//printf("%08x %08x %8d\n", src, dst, size32);
+	if (size32&1 || size32<4)
+		memcpy(dst, src, size32 * sizeof(int));
+	else {
+		memcpy(dst, src, size32 * sizeof(int));
+		//nmppsCopy_32s((nm32s*)src,(nm32s*) dst, size32);
+		//halDmaStart(src, dst, size32);
+
+		//while (!halDmaIsCompleted());
+	}
+	return 0;
+}
+static void* memCopyPush(const void *src, void *dst, unsigned int size32) {
+	//memcpy(dst, src, size32 * sizeof(int));
+	if ((int)src & 1 || (int)dst & 1 || size32 & 1)
+		printf("error\n");
+	nmppsCopy_32s((nm32s*)src,(nm32s*) dst, size32);
+	return 0;
+}
+*/
