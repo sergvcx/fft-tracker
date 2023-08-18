@@ -180,7 +180,6 @@ int main(){
 
 	
 
-
 	while (1) {
 		//printf("<<< 1:\n");
 		dtpRecv(rbCmdToNm1, &cmdIn, sizeof32(cmdIn));
@@ -192,12 +191,34 @@ int main(){
 				PRINT3("ring_x86_to_nm1_img: head:%d tail:%d\n", ring_x86_to_nm1_img->head, ring_x86_to_nm1_img->tail);
 			}
 
+			//cmdIn.frmIndex*imgSize32 +
+			//int srcPos8 = cmdIn.frmRoi.y*imgDim.width + cmdIn.frmRoi.x;
+			//int src
+			//int srcDma=
+			//if (cmdIn.frmRoi.x)
 			int *roi = ring_x86_to_nm1_img->data +cmdIn.frmIndex*imgSize32 + cmdIn.frmRoi.y*imgDim.width / 4 + cmdIn.frmRoi.x / 4;
 
 			nm8s* blurRoi8s = (nm8s*)ringBufferLo;
+			//nm32s* imgAddr =
+			nm32s * imgAddr = ring_x86_to_nm1_img->data + cmdIn.frmIndex*imgSize32;
+			NMASSERT((int)imgAddr & 0x0F == 0);
+			int roi8Pos = cmdIn.frmRoi.y*imgDim.width  + cmdIn.frmRoi.x;	// byte position 
+			int roi32PosBase = (roi8Pos / 4) & 0xFFFF0;						// 16x-aligned word position
+			int roi32PosDisp = roi8Pos - roi32PosBase * 4;					// byte offset from aligned 
+			int roi32EndBase = (cmdIn.frmRoi.y*imgDim.width + cmdIn.frmRoi.x + cmdIn.frmRoi.width) / 4; // right out off roi word position
+			roi32EndBase = (roi32EndBase + 15)0xFFF0; // 16-x aligned word position of out off roi
+
+		//		NmppRect srcDma;
+	//		srcDma.
+//
+
+				//, "srcAdrres not aligned");
 			if (cmdIn.command == DO_FFT0)
 				nmppsSet_8s(0, blurRoi8s, DIM*DIM);
-			halDma2D_Start(roi, blurRoi8s, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM/4);
+			//halDma2D_Start(roi, blurRoi8s, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM/4);
+			
+			halDma2D_Start(roiPos, blurRoi8s, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM/4);
+			
 			//mdelay(10);
 			while (!halDma2D_IsCompleted());// {
 			//	printf(".");

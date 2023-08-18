@@ -110,16 +110,17 @@ extern "C" {
 //###############            main        ###################
 //##########################################################
 #define LOG2DIM 7
-#define START_FRAME 1
-#define MC12101 1
+#define START_FRAME 100
+#define MC12101 0
 #define MAX_CACHE_FRAMES 30000000
-//#define AVI "..\\..\\..\\Samples\\Road2.avi"
+#define AVI "..\\..\\..\\Samples\\Road2.avi"
+//#define AVI "..\\..\\..\\Samples\\victory22_384x360(xvid).avi"
 //#define AVI "../Samples/strike(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\victory22_360x360(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\Su25_720x720(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\Su25_256x256(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\Trooping the Colour Flypast 2023_640x360(xvid).avi"
-#define AVI "..\\..\\..\\Samples\\strike_640x360(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\strike_640x360(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\strike(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\strike256(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\victory22_384x360(xvid).avi"
@@ -259,6 +260,12 @@ int main()
 		
 //#define RADIO_USE
 		//VS_CreateRadioGroup("use",RADIO_USE,3,useLabel,) VS_CreateCheckBox
+#define SEARCH_IASMAX 0
+#define SEARCH_REAL 1
+
+//#define EDIT_SEARCH_MODE 0
+	//	VS_CreateEdit("SearchMode", EDIT_SEARCH_MODE);
+		//VS_SetEditInt(EDIT_SEARCH_MODE, 0);
 #define CHECK_IPP 0
 #define CHECK_TRACK_X64 1
 #define CHECK_TRACK_NMC 2 
@@ -284,6 +291,8 @@ int main()
 
 #define SLIDER_DEPTH_SEARCH 6
 		VS_CreateSlider("depth search", SLIDER_DEPTH_SEARCH, 1, 255, 1, 1);
+#define SLIDER_SEARCH_MODE 8
+		VS_CreateSlider("search mode", SLIDER_SEARCH_MODE, 0,2, 1, 0);
 
 #define SLIDER_SCALE 7
 		VS_CreateSlider("scale", SLIDER_SCALE, 0.1, 2, 0.01, 1);
@@ -419,7 +428,8 @@ int main()
 			if (MouseStatus.nID == PREV_ORIGIN_IMG || MouseStatus.nID == CURR_ORIGIN_IMG) {
 				wantedOrg.x = MouseStatus.nX>>3<<3;
 				wantedOrg.y = MouseStatus.nY;
-				currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2  - DIM / 2)) >> 3 << 3;
+				// currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2  - DIM / 2)) >> 3 << 3;
+				currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2  - DIM / 2));
 				currFrame.y = MIN(HEIGHT - DIM, MAX(0, wantedOrg.y + wantedSize / 2 - DIM / 2));
 				caughtOrg   = wantedOrg;
 			}
@@ -427,7 +437,8 @@ int main()
 
 		if (MouseStatus.nKey == VS_MOUSE_LBUTTON) {
 			if (MouseStatus.nID == PREV_ORIGIN_IMG || MouseStatus.nID == CURR_ORIGIN_IMG) {
-				wantedOrg.x = MouseStatus.nX>>3<<3;
+				//wantedOrg.x = MouseStatus.nX>>3<<3;
+				wantedOrg.x = MouseStatus.nX;
 				wantedOrg.y = MouseStatus.nY;
 				caughtOrg = wantedOrg;
 			}
@@ -471,16 +482,15 @@ int main()
 			VS_SetData(CURR_ORIGIN_IMG, currOriginC);
 			
 			wantedOrg = caughtOrg;
-			//currFrame.x = MIN(WIDTH  - DIM, MAX(0, wantedOrg.x - DIM / 2))>>3<<3;
-			//currFrame.y = MIN(HEIGHT - DIM, MAX(0, wantedOrg.y - DIM / 2));
-			currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2 - DIM / 2)) >> 3 << 3;
+			///currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2 - DIM / 2)) >> 3 << 3;
+			currFrame.x = MIN(WIDTH - DIM, MAX(0, wantedOrg.x + wantedSize / 2 - DIM / 2));
 			currFrame.y = MIN(HEIGHT - DIM, MAX(0, wantedOrg.y + wantedSize / 2 - DIM / 2));
 
 			// 8-byte alignment
-			wantedOrg.x += wantedOrgOffsetX; // compensation from prev step offset
-			wantedOrgOffsetX = wantedOrg.x % 8;
-			wantedOrg.x >>=3;
-			wantedOrg.x <<=3;
+			///wantedOrg.x += wantedOrgOffsetX; // compensation from prev step offset
+			///wantedOrgOffsetX = wantedOrg.x % 8;
+			///wantedOrg.x >>=3;
+			///wantedOrg.x <<=3;
 		}
 	
 		//ippiSuperSampling_8u_C1R(currOrigin8u, WIDTH, srcRoiSize, currOrigin8u, dim, dimRoiSize, buffer);
@@ -507,8 +517,8 @@ int main()
 		//		sobelCmplx(prevImage8u, prevImage_fcr, width, height);
 			memset(wantedImage_fcr, 0, DIM*DIM * 8);
 			memset(wantedImage8s, 0, DIM*DIM);
-			_ASSERTE(wantedOrg.x % 8 == 0);
-			_ASSERTE(wantedSize % 8 == 0);
+			///_ASSERTE(wantedOrg.x % 8 == 0);
+			///_ASSERTE(wantedSize % 8 == 0);
 			for (int i = 0; i < wantedSize; i++) {
 				for (int j = 0; j < wantedSize; j++) {
 					int blurDiff = prevFullBlur8s[WIDTH*(wantedOrg.y + i) + wantedOrg.x + j];
@@ -537,7 +547,7 @@ int main()
 			//sobelCmplx(currImage8u, currImage_fcr, width, height);
 			//VS_SetData(CURR_BLUR, currBlur8u);
 
-			_ASSERTE(currFrame.x % 8 == 0);
+			///_ASSERTE(currFrame.x % 8 == 0);
 			for (int i = 0, k = 0; i < DIM; i++) {
 				for (int j = 0; j < DIM; j++, k++) {
 					int blurDiff = currFullBlur8s[WIDTH*(currFrame.y + i) + currFrame.x + j];
@@ -610,16 +620,17 @@ int main()
 			for (int k = 0; k < VS_GetSlider(SLIDER_DEPTH_SEARCH); k++) {
 				nm32fcr maxx = { 0,0 };
 				NmppPoint caught;
-				int searchMode = 0;
-				switch (searchMode) {
-				case (0):
-				{
+				int searchMode = VS_GetSlider(SLIDER_SEARCH_MODE);
+				
+				switch (searchMode){
+
+				case 0: {
 					int idx = nmblas_isamax(DIM*DIM * 2, (const float*)productIFFT_fcr, 1);
 					caught.y = idx >> 8;
 					caught.x = (idx % 256) >> 1;
 					maxx = productIFFT_fcr[idx >> 1];
 				}
-				case (1):
+				case 1:
 				{
 					for (int i = 0; i < DIM - wantedSize; i++) {
 						for (int j = 0; j < DIM - wantedSize; j++) {
@@ -631,7 +642,7 @@ int main()
 						}
 					}
 				}
-				case(2):
+				case 2 :
 				{
 					for (int i = 0; i < DIM; i++) {
 						for (int j = 0; j < DIM; j++) {
@@ -678,8 +689,6 @@ int main()
 		static int index1;
 		//int currFrameNum = VS_GetSrcFrameNum();
 		if (MC12101  && VS_GetCheckBox(CHECK_TRACK_NMC)) {
-			
-	
 			if (!(status&VS_PAUSE)) {
 				if (currentFrame == startFrame) {
 					index0 = 0;
@@ -730,13 +739,13 @@ int main()
 		if (VS_GetCheckBox(CHECK_TRACK_X64)) {
 			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgPC.x, caughtOrgPC.y, caughtOrgPC.x + wantedSize, caughtOrgPC.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
 			caughtOrg = caughtOrgPC;
-			//VS_Text("%d PC cx:%d cy:%d max:%f %f \r\n", currentFrame - startFrame, caughtPC.x, caughtPC.y, maxPC.re, maxPC.im);
+			VS_Text("%d PC cx:%d cy:%d max:%f %f \r\n", currentFrame - startFrame, caughtPC.x, caughtPC.y, maxPC.re, maxPC.im);
 		}
 
 		if (VS_GetCheckBox(CHECK_TRACK_NMC)) {
 			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgNM.x + 1, caughtOrgNM.y + 1, caughtOrgNM.x + wantedSize - 1, caughtOrgNM.y + wantedSize - 1, VS_YELLOW, VS_NULL_COLOR);
 			caughtOrg = caughtOrgNM;
-			//VS_Text("%d NM cx:%d cy:%d max:%f %f\r\n", currentFrame-startFrame, caughtNM.x, caughtNM.y,maxNM.re, maxNM.im);
+			VS_Text("%d NM cx:%d cy:%d max:%f %f\r\n", currentFrame-startFrame, caughtNM.x, caughtNM.y,maxNM.re, maxNM.im);
 		}
 	
 		_ASSERTE(caughtOrg.x >= 0);
@@ -754,8 +763,6 @@ int main()
 		//VS_Text("pc:%f nm:%f \r\n",maxPC , maxNM);
 		
 		VS_Draw(VS_DRAW_ALL);
-		
-
 	}
 }
 
