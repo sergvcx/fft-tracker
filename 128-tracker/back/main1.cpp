@@ -80,9 +80,23 @@ extern "C" {
 
 int blurWeights[16 * 16];
 
+
+void nmppmCopy_8si8si(nm8s* pSrc, int srcBeginIndex,   int srcStep, nm8s* pDst, int dstBeginIndex, int dstStep, int width, int height) {
+
+	nm8s* rowSrc = pSrc;
+	nm8s* rowDst = pDst;
+	for (int y = 0; y < height; y++) {
+		for (int x = 0; x < width; x++) {
+			int val = nmppsGet_8s(rowSrc, srcBeginIndex +x);
+			nmppsPut_8s(rowDst, dstBeginIndex + x, val);
+		}
+		rowSrc = nmppsAddr_8s(rowSrc, srcStep);
+		rowDst = nmppsAddr_8s(rowDst, dstStep);
+	}
+}
+
 __attribute__((section(".text.nmpp")))
 int main(){
-
 	halInstrCacheEnable();
 	if (USE_SEMIHOSTING) printf("nmc1 started\n");
 	HalRingBufferData<int, 2>* ring[6];
@@ -214,6 +228,7 @@ int main(){
 				PRINT("ring_x86_to_nm1_img: head:%d tail:%d\n", ring_x86_to_nm1_img->head, ring_x86_to_nm1_img->tail);
 			}
 
+			
 			//cmdIn.frmIndex*imgSize32 +
 			//int srcPos8 = cmdIn.frmRoi.y*imgDim.width + cmdIn.frmRoi.x;
 			//int src
@@ -224,8 +239,11 @@ int main(){
 			//nmwDrawAll(display, surface[cmdIn.frmIndex], cmdIn.frmRoi.width, cmdIn.frmRoi.height);
 
 			nm8s* blurRoi8s = (nm8s*)ringBufferLo;
-			if (cmdIn.command == DO_FFT0)
+			if (cmdIn.command == DO_FFT0) {
 				nmppsSet_8s(0, blurRoi8s, DIM*DIM);
+				nmppsSet_8s(0, (nm8s*)ringBufferHi, DIM*DIM);
+
+			}
 			
 			nm8s* src = (nm8s*)(ring_x86_to_nm1_img->data+ cmdIn.frmIndex*imgSize32 + cmdIn.frmRoi.y*imgDim.width/4 + cmdIn.frmRoi.x/4 );
 			nm8s* dst = (nm8s*)ringBufferLo;
@@ -240,46 +258,54 @@ int main(){
 			//else if (copyMode==1)
 			//	nmppmCopy_8s((nm8s*)roi, cmdIn.frmRoi.width, blurRoi8s, DIM , cmdIn.frmRoi.height, cmdIn.frmRoi.width);
 			else if (copyMode == 2) {
+
 				halDma2D_Start(roi, blurRoi8s, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM/4);
-				while (!halDma2D_IsCompleted());// {
+				while (!halDma2D_IsCompleted());
+	
+				// It works!
+				// halDma2D_Start(roi, ringBufferHi, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM/4);
+				// while (!halDma2D_IsCompleted());
+				// nmppmCopy_8si8si((nm8s*)ringBufferHi, 0, DIM , blurRoi8s, 0, DIM, cmdIn.frmRoi.width , cmdIn.frmRoi.height);
+
+				// It works!
+				// halDma2D_Start(roi, ringBufferHi, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, cmdIn.frmRoi.width / 4);
+				// while (!halDma2D_IsCompleted());
+				//nmppmCopy_8si8si((nm8s*)ringBufferHi, 0, cmdIn.frmRoi.width , blurRoi8s, 0, DIM, cmdIn.frmRoi.width , cmdIn.frmRoi.height);
+
+
+
 			}
 			else if (copyMode ==3){
 				nm32s * imgAddr = ring_x86_to_nm1_img->data + cmdIn.frmIndex*imgSize32;
-				int roi8Pos = cmdIn.frmRoi.y*imgDim.width  + cmdIn.frmRoi.x;	// roi byte-position 
-				int roi8PosAligned64 = roi8Pos  & 0xFFFFFFC0;						// 64-byte-aligned roi byte-position
-				int roi32PosBase = roi8PosAligned64 >>2;						// 64-byte-aligned roi word-position
-				int roi32PosDisp = roi8Pos - roi8PosAligned64;					// byte-offset from aligned position
+				int roi8Left		= cmdIn.frmRoi.y*imgDim.width  + cmdIn.frmRoi.x;	// roi byte-position 
+				int roi8LeftAlign64	= roi8Left & 0xFFFFFFC0;					// 64-byte-aligned roi byte-position
+				int roi8LeftDisp    = roi8Left & 0x3F;							// byte-offset from aligned position
 			
-				int roi8End = roi8Pos + cmdIn.frmRoi.width;						// right from roi byte-position
-				int roi8EndAligned64 = (roi8End + 63)&0xFFFFFFC0;					// 64-byte-aligned byte-position of right from roi 
-				int roi32EndBase = roi8EndAligned64>>2;							// word-offset from aligned position
-				int roi32Width   = roi32EndBase - roi32PosBase;
-				int roi32Size = roi32Width * cmdIn.frmRoi.height;
+				int roi8Right		= roi8Left + cmdIn.frmRoi.width;			// right from roi byte-position
+				int roi8RightAlign64= (roi8Right + 63)&0xFFFFFFC0;				// 64-byte-aligned byte-position of right from roi 
+				int roi8Width		= roi8RightAlign64- roi8LeftAlign64;		// aligned roi byte-width 
+				int roi8Size		= roi8Width * cmdIn.frmRoi.height;
 
-				int* srcDma = imgAddr + roi32PosBase;
-				int* dstDma = ringBufferLo;
+				int* srcDma = imgAddr + roi8LeftAlign64/4;
+				//int* dstDma = ringBufferLo;
+				int* dstDma = ringBufferHi;
 				
-				NMASSERT(((int)imgAddr & 0x0F) == 0);
+				NMASSERT(((int)imgAddr& 0x0F) == 0);
 				NMASSERT(((int)srcDma & 0x0F) == 0);
 				NMASSERT(((int)dstDma & 0x0F) == 0);
-				NMASSERT(((int)roi32Width & 0x0F) == 0);
+				NMASSERT(roi8Width    % 64 == 0);
+				
 				
 				src = (nm8s*)srcDma;
 				dst = (nm8s*)dstDma;
 
-				//for (int y = 0; y < cmdIn.frmRoi.height; y++) {
-				//	memcpy(dst, src, cmdIn.frmRoi.width / 4);
-				//	src = nmppsAddr_8s(src, cmdIn.frmSize.width);
-				//	dst = nmppsAddr_8s(dst, DIM);
-				//}
-				//printf("%d %d\n", roi32Width , cmdIn.frmRoi.width / 4);
-				NMASSERT(roi32Width == cmdIn.frmRoi.width / 4);
-				NMASSERT(roi32Size == cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4);
-				//NMASSERT(cmdIn.frmRoi.width / 4 == cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4);
-				//halDma2D_Start(roi, blurRoi8s, cmdIn.frmRoi.height*cmdIn.frmRoi.width / 4, cmdIn.frmRoi.width / 4, cmdIn.frmSize.width / 4, DIM / 4);
-
-				halDma2D_Start(srcDma, dstDma, roi32Size, roi32Width, cmdIn.frmSize.width / 4, DIM/4);
+				// It works!		
+				halDma2D_Start(srcDma, ringBufferHi, roi8Size>>2, roi8Width>>2, cmdIn.frmSize.width >>2, roi8Width >>2);
 				while (!halDma2D_IsCompleted());
+				nmppmCopy_8si8si((nm8s*)ringBufferHi, roi8LeftDisp, roi8Width , blurRoi8s, 0, DIM, cmdIn.frmRoi.width , cmdIn.frmRoi.height);
+
+				//cmdIn.info();
+				//printf("roi8Size:%d roi8Width:%d roi8LeftDisp:%d \n", roi8Size, roi8Width, roi8LeftDisp);
 			}
 
 			//mdelay(10);

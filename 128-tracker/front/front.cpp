@@ -25,8 +25,9 @@
 #define LOG2DIM 7
 #define START_FRAME 1
 #define MC12101 1
+#define ALIGN 0xFFFF
 //#define ALIGN 0xFFF8
-#define ALIGN 0xFFC0
+//#define ALIGN 0xFFC0
 #define WANTED_SIZE 64
 #define MAX_CACHE_FRAMES 0x1000
 #define SCRIPT 0

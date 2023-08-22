@@ -58,6 +58,9 @@ struct Cmd_x86_to_nm1{
 	unsigned frmAddress;
 	NmppSize frmSize;
 	NmppRect frmRoi;
+	void info() {
+		printf("cnt:%d cmd:%d indx:%d addr:%08x W:%d H:%d w:%d h:%d x:%d y:%d\n", counter, command, frmIndex, frmAddress, frmSize.width, frmSize.height, frmRoi.width, frmRoi.height,frmRoi.x, frmRoi.y);
+	}
 } ;
 
 //typedef tHalRingBuffer<Image256x256_32s, SIZE_RING_BUFFER> RingBufferImage256x256_32s;
