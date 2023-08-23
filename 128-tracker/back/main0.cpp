@@ -345,7 +345,7 @@ int main()
 			dtpSend(rbTo86, &caught, sizeof32(caught));
 			
 			
-			dtpSend(rbTo86, &maxx, sizeof32(maxx));// bug
+			//dtpSend(rbTo86, &maxx, sizeof32(maxx));// bug
 			//dtpSend(rbTo86, &rmax, sizeof32(rmax));// bug
 			
 		}

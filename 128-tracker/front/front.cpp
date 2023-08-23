@@ -33,6 +33,11 @@
 #define SCRIPT 0
 //#define AVI "..\\..\\..\\Samples\\Road2_256x256(xvid).avi"
 #define AVI "..\\..\\..\\Samples\\strike_640x360(xvid).avi"
+
+#define VS_CREATE_IMAGE 
+#define VS_SET_DATA 
+#define VS_WRITE_IMAGE
+
 //#define AVI "..\\..\\..\\Samples\\victory22_384x360(xvid).avi"
 //#define AVI "../Samples/strike(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\victory22_360x360(xvid).avi"
@@ -305,13 +310,13 @@ int main()
 
 #define PREV_ORG_BLUR_8S 2
 #define CURR_ORG_BLUR_8S 3
-		VS_CreateImage("Prev Blur", PREV_ORG_BLUR_8S, WIDTH, HEIGHT, VS_RGB8_8, 0);
-		VS_CreateImage("Curr Blur", CURR_ORG_BLUR_8S, WIDTH, HEIGHT, VS_RGB8_8, 0);
+		VS_CREATE_IMAGE("Prev Blur", PREV_ORG_BLUR_8S, WIDTH, HEIGHT, VS_RGB8_8, 0);
+		VS_CREATE_IMAGE("Curr Blur", CURR_ORG_BLUR_8S, WIDTH, HEIGHT, VS_RGB8_8, 0);
 
 #define CURR_IMG8 4
-		VS_CreateImage("current Image", CURR_IMG8, WIDTH, HEIGHT, VS_RGB8, 0);
+		VS_CREATE_IMAGE("current Image", CURR_IMG8, WIDTH, HEIGHT, VS_RGB8, 0);
 #define PREV_IMG8 5
-		VS_CreateImage("previous Image", PREV_IMG8, WIDTH, HEIGHT, VS_RGB8, 0);
+		VS_CREATE_IMAGE("previous Image", PREV_IMG8, WIDTH, HEIGHT, VS_RGB8, 0);
 #define PREV_BLUR 12
 #define CURR_BLUR 13
 #define DIFF_BLUR 14
@@ -323,8 +328,8 @@ int main()
 
 #define CURR_IMG_FC 213
 #define PREV_IMG_FC 214
-		VS_CreateImage("curr input(cmplx)", CURR_IMG_FC, DIM, DIM, VS_RGB32FC, 0);
-		VS_CreateImage("prev input(cmplx)", PREV_IMG_FC, DIM, DIM, VS_RGB32FC, 0);
+		VS_CREATE_IMAGE("curr input(cmplx)", CURR_IMG_FC, DIM, DIM, VS_RGB32FC, 0);
+		VS_CREATE_IMAGE("prev input(cmplx)", PREV_IMG_FC, DIM, DIM, VS_RGB32FC, 0);
 #define WANTED_IMG_FC 215
 		//VS_CreateImage("wanted input(cmplx)", WANTED_IMG_FC, dim, dim, VS_RGB32FC, 0);
 
@@ -334,7 +339,7 @@ int main()
 //VS_CreateImage("wanted FFT(cmplx)", WANT_FFT, dim, dim, VS_RGB32FC, 0);
 //VS_CreateImage("FFT*FFT(cmplx)", 332, dim, dim, VS_RGB32FC, 0);
 #define  IFFT_IMG 333
-		VS_CreateImage("IFFT   (cmplx)", IFFT_IMG, DIM, DIM, VS_RGB32FC, 0);
+		VS_CREATE_IMAGE("IFFT   (cmplx)", IFFT_IMG, DIM, DIM, VS_RGB32FC, 0);
 
 #define  DIFF_IMG 334
 		//VS_CreateImage("Diff ", DIFF_IMG, width, height, VS_RGB8_32, 0);
@@ -503,11 +508,11 @@ int main()
 		}
 	
 		//ippiSuperSampling_8u_C1R(currOrigin8u, WIDTH, srcRoiSize, currOrigin8u, dim, dimRoiSize, buffer);
-		VS_SetData(PREV_IMG8, prevImage8u);
-		VS_SetData(CURR_IMG8, currImage8u);
+		VS_SET_DATA(PREV_IMG8, prevImage8u);
+		VS_SET_DATA(CURR_IMG8, currImage8u);
 		
-		VS_SetData(PREV_ORG_BLUR_8S, prevFullBlur8s);
-		VS_SetData(CURR_ORG_BLUR_8S, currFullBlur8s);
+		VS_SET_DATA(PREV_ORG_BLUR_8S, prevFullBlur8s);
+		VS_SET_DATA(CURR_ORG_BLUR_8S, currFullBlur8s);
 
 		VS_Rectangle(PREV_ORIGIN_IMG, currFrame.x, currFrame.y, currFrame.x + DIM * scale, currFrame.y + DIM * scale, VS_BLUE, VS_NULL_COLOR);
 		VS_Rectangle(CURR_ORIGIN_IMG, currFrame.x, currFrame.y, currFrame.x + DIM * scale, currFrame.y + DIM * scale, VS_BLUE, VS_NULL_COLOR);
@@ -564,8 +569,8 @@ int main()
 					currImage8s[k] = blurDiff;
 				}
 			}
-			vsWriteImage("../back/pcwant.vsimg", wantedImage_fcr, DIM, DIM, VS_RGB32FC);
-			vsWriteImage("../back/pccurr.vsimg", currImage_fcr, DIM, DIM, VS_RGB32FC);
+			VS_WRITE_IMAGE("../back/pcwant.vsimg", wantedImage_fcr, DIM, DIM, VS_RGB32FC);
+			VS_WRITE_IMAGE("../back/pccurr.vsimg", currImage_fcr, DIM, DIM, VS_RGB32FC);
 			//VS_SetData(CURR_IMG_FC, currImage_fcr);
 
 			// ----------forward fft ----------------
@@ -618,14 +623,14 @@ int main()
 
 			//vsWriteImage("../back/pcIFFT.vsimg", productIFFT_fcr, DIM, DIM, VS_RGB32FC);
 
-			VS_SetData(IFFT_IMG, productIFFT_fcr);
+			VS_SET_DATA(IFFT_IMG, productIFFT_fcr);
 
 			//dump_32f("%.3f ", (nm32f*)productIFFT_fcr, 14, 14, DIM * 2, 0);
 			//printf("------\n");
 			//dump_32f("%.2e ", (nm32f*)productIFFT_fcr, 14, 14, DIM * 2, 0);
 
 			int blurThresh = VS_GetSlider(SLIDER_BLUR_THRESH);
-			VS_SetData(IFFT_IMG, productIFFT_fcr);
+			VS_SET_DATA(IFFT_IMG, productIFFT_fcr);
 			for (int k = 0; k < VS_GetSlider(SLIDER_DEPTH_SEARCH); k++) {
 				nm32fcr maxx = { 0,0 };
 				NmppPoint caught;
@@ -740,7 +745,7 @@ int main()
 			
 			dtpRecv(drOut, &caughtNM, sizeof32(caughtNM));
 			
-			dtpRecv(drOut, &maxNM, sizeof32(maxNM)); //bug
+			//dtpRecv(drOut, &maxNM, sizeof32(maxNM)); //bug
 			caughtOrgNM.x = currFrame.x + caughtNM.x;
 			caughtOrgNM.y = currFrame.y + caughtNM.y;
 		}
