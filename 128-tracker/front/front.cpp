@@ -54,7 +54,6 @@
 //#define AVI "..\\Samples\\Formula3.avi"
 //#define AVI "d:\\video\\films\\256x256\\2xFormula2.avi"
 
-
 int blur(nm8u *img, int width, int height, int size, int x, int y) {
 	int halfsize = size / 2;
 	int sum = 0;

@@ -303,6 +303,7 @@ int main(){
 				halDma2D_Start(srcDma, ringBufferHi, roi8Size>>2, roi8Width>>2, cmdIn.frmSize.width >>2, roi8Width >>2);
 				while (!halDma2D_IsCompleted());
 				//nmppmCopy_8si8si((nm8s*)ringBufferHi, roi8LeftDisp, roi8Width , blurRoi8s, 0, DIM, cmdIn.frmRoi.width , cmdIn.frmRoi.height);
+				nmppmCopyua_8s((nm8s*)ringBufferHi, roi8Width, roi8LeftDisp, blurRoi8s, DIM, cmdIn.frmRoi.height, cmdIn.frmRoi.width);
 
 				//cmdIn.info();
 				//printf("roi8Size:%d roi8Width:%d roi8LeftDisp:%d \n", roi8Size, roi8Width, roi8LeftDisp);
