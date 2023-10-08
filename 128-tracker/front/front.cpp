@@ -1,4 +1,5 @@
-﻿#include "ippdefs.h"
+﻿//#include "tchar.h"
+#include "ippdefs.h"
 #include "ippi.h"
 #include "ippcore.h"
 #include "ipps.h"
@@ -19,20 +20,22 @@
 #include "vsimg.h"
 #include "nmblas.h"
 #include "hal/ringbuffert.h"
+
 //#include "hadamard.h"
 
 #define VS_TEXT
 #define LOG2DIM 7
 #define START_FRAME 1
-#define MC12101 1
+#define MC12101 0
 #define ALIGN 0xFFFF
 //#define ALIGN 0xFFF8
 //#define ALIGN 0xFFC0
 #define WANTED_SIZE 64
 #define MAX_CACHE_FRAMES 0x1000
-#define SCRIPT 0
+#define SCRIPT 1
 //#define AVI "..\\..\\..\\Samples\\Road2_256x256(xvid).avi"
-#define AVI "..\\..\\..\\Samples\\strike_640x360(xvid).avi"
+//#define AVI "..\\..\\..\\Samples\\strike_640x360(xvid).avi"
+#define AVI "..\\..\\..\\Samples\\demo_640x360.avi"
 
 #define VS_CREATE_IMAGE 
 #define VS_SET_DATA 
