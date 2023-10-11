@@ -24,7 +24,7 @@
 //vsSaveImage
 #define USE_SEMIHOSTING 1
 #define PRINT(...) printf(__VA_ARGS__)
-#define PRINTRT(...) 
+#define PRINTRT(...) printf(__VA_ARGS__)
 // printf(__VA_ARGS__)
 
 
@@ -80,8 +80,10 @@ __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm1_to_n
 __attribute__((section(".data.shmem0"))) HalRingBufferData<int, 2> ring_nm0_to_nm1_corr;
 
 __attribute__((section(".data.shmem0")))  int data_x86_to_nm1_cmd[16 * 16 ]; //sizeof32(Cmd_x86_to_nm1)
-__attribute__((section(".data.emi"), aligned(256))) int data_x86_to_nm1_img[512 * 512 * 512 / 4] ;
-__attribute__((section(".data.emi")))     int data_nm1_to_x86_out[2 * DIM*DIM * 2]; // declared on nm1 
+__attribute__((section(".data.emi"), aligned(256))) int data_x86_to_nm1_img[256 * 1024 * 1024 / 4] ;
+//__attribute__((section(".data.s"), aligned(256))) int data_x86_to_nm1_img[128*1024*1024 / 4] ;
+
+__attribute__((section(".data.shmem1")))     int data_nm1_to_x86_out[2 * DIM*DIM * 2]; // declared on nm1 
 __attribute__((section(".data.shmem0")))  int data_nm1_to_nm0_cmd[1024]; //sizeof(Cmd_nm1_to_nm0)];
 __attribute__((section(".data.imu6")))    int data_nm1_to_nm0_diff[2 * DIM*DIM];
 __attribute__((section(".data.imu7")))	  int data_nm0_to_nm1_corr[2 * DIM*DIM];
@@ -220,7 +222,7 @@ int main()
 		if (cmd.command == DO_FFT0) {
 			PRINTRT("out: DO_FFT0\n");
 			while (ring_nm1_to_nm0_diff.isEmpty())
-				PRINT("ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff.head, ring_nm1_to_nm0_diff.tail);
+				PRINT("Empty ring_nm1_to_nm0_diff: head:%d tail:%d\n", ring_nm1_to_nm0_diff.head, ring_nm1_to_nm0_diff.tail);
 
 			nm32s* in = toLocal0(ring_nm1_to_nm0_diff.ptrTail());
 			//printf("---32s-\n");

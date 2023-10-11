@@ -31,11 +31,41 @@
 //#define ALIGN 0xFFF8
 //#define ALIGN 0xFFC0
 #define WANTED_SIZE 64
-#define MAX_CACHE_FRAMES 0x1000
+//#define MAX_CACHE_FRAMES 0x1000
+#define MAX_CACHE_FRAMES 0x40000
 #define SCRIPT 1
 //#define AVI "..\\..\\..\\Samples\\Road2_256x256(xvid).avi"
 //#define AVI "..\\..\\..\\Samples\\strike_640x360(xvid).avi"
-#define AVI "..\\..\\..\\Samples\\demo_640x360.avi"
+//#define AVI "..\\..\\..\\Samples\\demo_640x360.avi"
+//#define AVI "..\\..\\..\\Samples\\Windg5.avi"
+//#define AVI "..\\..\\..\\Samples\\rocket.avi"
+
+#define AVI "..\\..\\..\\Samples\\stalin5.avi"
+struct Mov{
+	int start;
+	int end;
+	int x;
+	int y;
+	int w;
+	char avi[128];
+} ;
+Mov script[]={
+{0,100,	10,156,40,"..\\..\\..\\Samples\\strike_640x360(xvid).avi"},
+{206,350,335,199,40,"..\\..\\..\\Samples\\strike_640x360(xvid).avi"},
+{0,47,155,227,28,"..\\..\\..\\Samples\\rocket.avi"},
+{0,45,211,287,32,"..\\..\\..\\Samples\\rocket2.avi"},
+//{0,45,240,269,40,"..\\..\\..\\Samples\\rocket3.avi"},
+{0,109,	434,11,48, "..\\..\\..\\Samples\\stalin5.avi"},
+{40,177,371,81,48, "..\\..\\..\\Samples\\Windg5.avi"},
+//{40,177,371,81,48, "..\\..\\..\\Samples\\Windg5.avi"},
+{0,51,	450,7,48, "..\\..\\..\\Samples\\stalin4.avi"},
+{0,70,	401,151,48, "..\\..\\..\\Samples\\stalin9.avi"}
+
+
+};
+
+
+
 
 #define VS_CREATE_IMAGE 
 #define VS_SET_DATA 
@@ -171,7 +201,12 @@ int main()
 		drOut = dtpOpenMc12101Ringbuffer(0, 0, ring_addr[2]);
 	}
 	
-	if (!VS_Bind(AVI)) return 1;
+	//if (!VS_Bind(AVI)) return 1;
+
+	int mv = 0;
+	VS_Bind(script[mv].avi);
+	VS_Seek(script[mv].start);
+
 	int WIDTH  = VS_GetWidth(VS_SOURCE);
 	int HEIGHT = VS_GetHeight(VS_SOURCE);
 	int imgFullSize32 = WIDTH * HEIGHT / 4;
@@ -286,7 +321,8 @@ int main()
 
 #define SLIDER_START_FRAME 10
 #define SLIDER_CACHE_FRAMES  11
-		int srcFrames = VS_GetSrcFrames();
+		//int srcFrames =
+		//VS_GetSrcFrames();
 		VS_CreateSlider("Start frame", SLIDER_START_FRAME, 0, VS_GetSrcFrames(), 1, START_FRAME);
 		VS_CreateSlider("Cache frames", SLIDER_CACHE_FRAMES,1, MIN(nmCacheSize32/imgFullSize32,MAX_CACHE_FRAMES), 1, MIN(nmCacheSize32 / imgFullSize32,MAX_CACHE_FRAMES));
 #define SLIDER_WANTED_SIZE 1		
@@ -391,15 +427,32 @@ int main()
 	int lastCachedFrame = -1;
 	//int stopCachedFrame = -1;
 	//VS_Seek(startFrame-1);
-	VS_Seek(START_FRAME-1);
+	
+	///VS_Seek(START_FRAME-1);
 
+	int cf = 0;
+
+	caughtOrg = { script[mv].x, script[mv].y }; VS_SetSlider(SLIDER_WANTED_SIZE, script[mv].w); 
+	VS_Bind(script[mv].avi);
+	VS_Seek(script[mv].start);
+	VS_Run();
+//	VS_Seek(-1);
+
+	VS_Draw(-1);
+	int currentFrame = VS_GetSrcFrameNum();
+	VS_Bind(script[mv].avi);
+	 currentFrame = VS_GetSrcFrameNum();
+	 VS_Seek(script[mv].start);
+	 int totalCurrentFrame = 1;
 	while (int status=VS_Run()) {
+		
 		int currentFrame = VS_GetSrcFrameNum();
 		int cacheFrames= VS_GetSlider(SLIDER_CACHE_FRAMES);
 		float scale    = VS_GetSlider(SLIDER_SCALE);
 		 	blurSize   = VS_GetSlider(SLIDER_BLUR_SIZE);
 		
 		
+		/*
 		if (SCRIPT )switch (currentFrame) {
 		case 1:				caughtOrg = { 29, 161 }; VS_SetSlider(SLIDER_WANTED_SIZE, 32); break;
 		case 50:				                     VS_SetSlider(SLIDER_WANTED_SIZE, 48); break;
@@ -408,8 +461,15 @@ int main()
 
 		}
 			
+		*/
+			//if (currentFrame == 0) {
+			//	VS_Bind(AVI);
+			//}
+
+
+
 		int wantedSize = (int)VS_GetSlider(1)&ALIGN;
-		
+/*
 		if (currentFrame >= startFrame + cacheFrames - 1) {
 			VS_Seek(startFrame-1);
 		}
@@ -430,7 +490,7 @@ int main()
 			cacheFrames = VS_GetSrcFrames() - startFrame - 1;
 			VS_SetSlider(SLIDER_CACHE_FRAMES, cacheFrames);
 		}
-
+*/
 		// ------------------------------- MOUSE HANDLING ----------------------------		
 		VS_GetMouseStatus(&MouseStatus);
 		if (MouseStatus.nKey == VS_MOUSE_CONTROL) {
@@ -480,8 +540,8 @@ int main()
 					nmppsConvert_32s8s(tempFull32s, currFullBlur8s, WIDTH*HEIGHT);
 				}
 			}
-			
-			if (currentFrame == startFrame) {
+			if (currentFrame == script[mv].start+1){
+			//if (currentFrame == startFrame) {
 				memcpy(prevOriginC, currOriginC, WIDTH*HEIGHT * 3);
 				memcpy(prevOrigin8u, currOrigin8u, WIDTH*HEIGHT);
 				memcpy(prevFullBlur8s, currFullBlur8s, WIDTH*HEIGHT);
@@ -524,6 +584,7 @@ int main()
 		//#####################         track X64      ###########################
 		//########################################################################
 		nm32fcr maxPC = { 0,0 };
+		
 		if (VS_GetCheckBox(CHECK_TRACK_X64))
 		{
 
@@ -707,7 +768,8 @@ int main()
 		//int currFrameNum = VS_GetSrcFrameNum();
 		if (MC12101  && VS_GetCheckBox(CHECK_TRACK_NMC)) {
 			if (!(status&VS_PAUSE)) {
-				if (currentFrame == startFrame) {
+				//if (totalCurrentFrame == startFrame ) {
+				if (totalCurrentFrame == 1 ) {
 					index0 = 0;
 					index1 = 0;
 				}
@@ -715,14 +777,17 @@ int main()
 					index1++;
 					index0 = index1 - 1;
 				}
-				if (currentFrame > lastCachedFrame) {
+				if (totalCurrentFrame > lastCachedFrame) {
+					printf("0");
 					dtpSend(dwImg, currFullBlur8s, imgFullSize32);
-					lastCachedFrame = currentFrame;
+					printf("1");
+					lastCachedFrame = totalCurrentFrame;
 				}
 				else{
 					//VS_Text("run from cache %d\r\n",currentFrame);
-					printf("run from cache %d\n",currentFrame);
+					printf("run from cache %d\n", lastCachedFrame);
 				}
+				
 
 			}
 	
@@ -781,6 +846,24 @@ int main()
 		//VS_Text("pc:%f nm:%f \r\n",maxPC , maxNM);
 		
 		VS_Draw(VS_DRAW_ALL);
+		
+		if (currentFrame == script[mv].end) {
+			mv++;
+			if (mv == sizeof(script) / sizeof(Mov)) {
+
+				mv = 0;
+				totalCurrentFrame=0;
+			}
+			VS_Bind(script[mv].avi);
+			VS_Seek(script[mv].start);
+			caughtOrg = { script[mv].x, script[mv].y }; VS_SetSlider(SLIDER_WANTED_SIZE, script[mv].w);
+			currentFrame = VS_GetSrcFrameNum();
+
+			_ASSERTE(currentFrame == script[mv].start);
+		}
+		totalCurrentFrame++;
+		printf("%d %dMb\n", totalCurrentFrame, totalCurrentFrame * 640 * 360 / 1024 / 1024);
+		_ASSERTE(totalCurrentFrame < 256 * 1024 * 1024 / 640 / 360);
 	}
 }
 

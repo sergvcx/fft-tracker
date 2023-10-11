@@ -16,7 +16,7 @@
 #define VS_SAVE_IMAGE vsSaveImage
 #define USE_SEMIHOSTING 1
 #define PRINT(...) printf(__VA_ARGS__)
-#define PRINTRT(...)
+#define PRINTRT(...) printf(__VA_ARGS__)
 //printf(__VA_ARGS__)
 #define EXCHANGE "../exchange.bin"
 
