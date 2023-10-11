@@ -23,8 +23,10 @@
 #define VS_SAVE_IMAGE(a,b,c,d,e)
 //vsSaveImage
 #define USE_SEMIHOSTING 1
-#define PRINT(...) printf(__VA_ARGS__)
-#define PRINTRT(...) printf(__VA_ARGS__)
+#define PRINT(...) 
+//printf(__VA_ARGS__)
+#define PRINTRT(...) 
+//printf(__VA_ARGS__)
 // printf(__VA_ARGS__)
 
 

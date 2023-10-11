@@ -26,7 +26,7 @@
 #define VS_TEXT
 #define LOG2DIM 7
 #define START_FRAME 1
-#define MC12101 0
+#define MC12101 1
 #define ALIGN 0xFFFF
 //#define ALIGN 0xFFF8
 //#define ALIGN 0xFFC0
@@ -319,6 +319,10 @@ int main()
 		VS_CreateCheckBox("Track by NMC", CHECK_TRACK_NMC, MC12101);
 		VS_CreateCheckBox("Loop ", CHECK_TRACK_CACHE, false);
 
+#define CHECK_SEARCH_AREA 9
+		VS_CreateCheckBox("search area", CHECK_SEARCH_AREA, true);
+
+
 #define SLIDER_START_FRAME 10
 #define SLIDER_CACHE_FRAMES  11
 		//int srcFrames =
@@ -338,6 +342,7 @@ int main()
 		VS_CreateSlider("depth search", SLIDER_DEPTH_SEARCH, 1, 255, 1, 1);
 #define SLIDER_SEARCH_MODE 8
 		VS_CreateSlider("search mode", SLIDER_SEARCH_MODE, 0,2, 1, 0);
+
 
 #define SLIDER_SCALE 7
 		VS_CreateSlider("scale", SLIDER_SCALE, 0.1, 2, 0.01, 1);
