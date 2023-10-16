@@ -40,7 +40,7 @@
 //#define AVI "..\\..\\..\\Samples\\Windg5.avi"
 //#define AVI "..\\..\\..\\Samples\\rocket.avi"
 
-#define AVI "..\\..\\..\\Samples\\stalin5.avi"
+//#define AVI "..\\..\\..\\Samples\\stalin5.avi"
 struct Mov{
 	int start;
 	int end;
@@ -50,16 +50,21 @@ struct Mov{
 	char avi[128];
 } ;
 Mov script[]={
+	{19,45,169,232,28,"..\\..\\..\\Samples\\rocket.avi"},
+	
+{270,350,325,216,40,"..\\..\\..\\Samples\\strike_640x360(xvid).avi"},
 {0,100,	10,156,40,"..\\..\\..\\Samples\\strike_640x360(xvid).avi"},
-{206,350,335,199,40,"..\\..\\..\\Samples\\strike_640x360(xvid).avi"},
-{0,47,155,227,28,"..\\..\\..\\Samples\\rocket.avi"},
-{0,45,211,287,32,"..\\..\\..\\Samples\\rocket2.avi"},
+//{0,46,155,227,28,"..\\..\\..\\Samples\\rocket.avi"},
+{10,45,234,276,32,"..\\..\\..\\Samples\\rocket2.avi"},
+
+
+//{0,45,211,287,32,"..\\..\\..\\Samples\\rocket2.avi"},
 //{0,45,240,269,40,"..\\..\\..\\Samples\\rocket3.avi"},
 {0,109,	434,11,48, "..\\..\\..\\Samples\\stalin5.avi"},
-{40,177,371,81,48, "..\\..\\..\\Samples\\Windg5.avi"},
+{55,187,356,84,48, "..\\..\\..\\Samples\\Windg5.avi"},
 //{40,177,371,81,48, "..\\..\\..\\Samples\\Windg5.avi"},
-{0,51,	450,7,48, "..\\..\\..\\Samples\\stalin4.avi"},
-{0,70,	401,151,48, "..\\..\\..\\Samples\\stalin9.avi"}
+{9,51,	428,64,48, "..\\..\\..\\Samples\\stalin4.avi"},
+//{0,60,	401,151,40, "..\\..\\..\\Samples\\stalin9.avi"}
 
 
 };
@@ -185,6 +190,7 @@ int main()
 	int file_desc = 0;
 	do {
 		file_desc = dtpOpenFile("../exchange.bin", "rb");
+		printf("%d", file_desc);
 	} while (file_desc < 0);
 	unsigned ring_addr[6];
 	dtpRecv(file_desc, ring_addr, 6);
@@ -199,6 +205,7 @@ int main()
 		toNM1 = dtpOpenMc12101Ringbuffer(0, 1, ring_addr[0]);
 		dwImg = dtpOpenMc12101Ringbuffer(0, 1, ring_addr[1]);
 		drOut = dtpOpenMc12101Ringbuffer(0, 0, ring_addr[2]);
+		printf("%d %d %d \n", toNM1, dwImg, drOut);
 	}
 	
 	//if (!VS_Bind(AVI)) return 1;
@@ -220,8 +227,12 @@ int main()
 		cmd.frmIndex = 0;
 		cmd.frmRoi = { 0,0,DIM,DIM };
 		cmd.frmSize = { WIDTH, HEIGHT };
+		printf("send...");
 		dtpSend(toNM1, &cmd, sizeof32(cmd));
+		printf("OK!");
+		printf("recv...");
 		dtpRecv(drOut, &nmCacheSize32, sizeof32(nmCacheSize32));
+		printf("OK!");
 	}
 	//nmCacheSize32 = WIDTH * HEIGHT * 8 / 4;
 	nm32u	*currOriginC = nmppsMalloc_32u(WIDTH*HEIGHT);
@@ -529,7 +540,7 @@ int main()
 			VS_GetData    (VS_SOURCE, currOriginC);
 			VS_GetGrayData(VS_SOURCE, currOrigin8u);
 			if ( VS_GetCheckBox(CHECK_TRACK_X64) || 
-				(VS_GetCheckBox(CHECK_TRACK_NMC) && (currentFrame > lastCachedFrame)))
+				(VS_GetCheckBox(CHECK_TRACK_NMC) && (totalCurrentFrame > lastCachedFrame)))
 			{
 				
 				if (VS_GetCheckBox(CHECK_IPP)) {
@@ -778,6 +789,10 @@ int main()
 					index0 = 0;
 					index1 = 0;
 				}
+				else if (currentFrame == script[mv].start+1) {
+					index1++;
+					index0 = index1 ;
+				}
 				else {
 					index1++;
 					index0 = index1 - 1;
@@ -801,7 +816,7 @@ int main()
 			cmd.frmIndex = index0;
 			cmd.frmSize = frmFullDim;
 			cmd.frmRoi = { wantedOrg.x,wantedOrg.y,wantedSize, wantedSize };
-			dtpSend(toNM1, &cmd, sizeof32(cmd));
+			int err=dtpSend(toNM1, &cmd, sizeof32(cmd));
 
 			cmd.command = DO_FFT1;
 			cmd.counter++;
@@ -818,23 +833,28 @@ int main()
 			
 			dtpRecv(drOut, &caughtNM, sizeof32(caughtNM));
 			
-			//dtpRecv(drOut, &maxNM, sizeof32(maxNM)); //bug
+			if (caughtNM.x < 100 || caughtNM.y < 100) {
 			caughtOrgNM.x = currFrame.x + caughtNM.x;
 			caughtOrgNM.y = currFrame.y + caughtNM.y;
+
+			}
+
+			//dtpRecv(drOut, &maxNM, sizeof32(maxNM)); //bug
 		}
-		
+		if (VS_GetCheckBox(CHECK_TRACK_X64)) {
+			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgPC.x, caughtOrgPC.y, caughtOrgPC.x + wantedSize, caughtOrgPC.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
+			caughtOrg = caughtOrgPC;
+			VS_TEXT("%d PC cx:%d cy:%d max:%f %f \r\n", currentFrame - startFrame, caughtPC.x, caughtPC.y, maxPC.re, maxPC.im);
+		}
 		if (VS_GetCheckBox(CHECK_TRACK_NMC)) {
 			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgNM.x + 1, caughtOrgNM.y + 1, caughtOrgNM.x + wantedSize - 1, caughtOrgNM.y + wantedSize - 1, VS_YELLOW, VS_NULL_COLOR);
 			caughtOrg = caughtOrgNM;
 			VS_TEXT("%d NM cx:%d cy:%d max:%f %f\r\n", currentFrame - startFrame, caughtNM.x, caughtNM.y, maxNM.re, maxNM.im);
 		}
 
-		if (VS_GetCheckBox(CHECK_TRACK_X64)) {
-			VS_Rectangle(CURR_ORIGIN_IMG, caughtOrgPC.x, caughtOrgPC.y, caughtOrgPC.x + wantedSize, caughtOrgPC.y + wantedSize, VS_GREEN, VS_NULL_COLOR);
-			caughtOrg = caughtOrgPC;
-			VS_TEXT("%d PC cx:%d cy:%d max:%f %f \r\n", currentFrame - startFrame, caughtPC.x, caughtPC.y, maxPC.re, maxPC.im);
-		}
+		
 
+		
 		
 		_ASSERTE(caughtOrg.x >= 0);
 		_ASSERTE(caughtOrg.y >= 0);
@@ -866,9 +886,13 @@ int main()
 
 			_ASSERTE(currentFrame == script[mv].start);
 		}
-		totalCurrentFrame++;
+		if (!(status&VS_PAUSE)) {
+			// если не пауза
+			totalCurrentFrame++;
+		}
+
 		printf("%d %dMb\n", totalCurrentFrame, totalCurrentFrame * 640 * 360 / 1024 / 1024);
-		_ASSERTE(totalCurrentFrame < 256 * 1024 * 1024 / 640 / 360);
+		if (MC12101) _ASSERTE(totalCurrentFrame < 256 * 1024 * 1024 / 640 / 360);
 	}
 }
 

@@ -15,8 +15,10 @@
 #define NW "c:\\git\\nmw\\bin\\nmdisplay_source.nw"
 #define VS_SAVE_IMAGE vsSaveImage
 #define USE_SEMIHOSTING 1
-#define PRINT(...) printf(__VA_ARGS__)
-#define PRINTRT(...) printf(__VA_ARGS__)
+#define PRINT(...)
+// printf(__VA_ARGS__)
+#define PRINTRT(...) 
+//printf(__VA_ARGS__)
 //printf(__VA_ARGS__)
 #define EXCHANGE "../exchange.bin"
 

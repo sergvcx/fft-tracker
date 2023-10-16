@@ -13,7 +13,7 @@ link_directories   (${DTP}/lib 		${IPP}/lib      ${NMPP}/lib      ${VSHELL}/lib 
 link_libraries(dtp-x64.lib nmpp-x64d.lib vshell.lib ippi.lib  ipps.lib ippcore.lib)
 
 add_executable(back 	main0.cpp main1.cpp)
-
+#set_property(TARGET MyTarget PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
 configure_file ("./Makefile"  				"Makefile" )
 configure_file ("./Makefile0"  				"Makefile0" )
